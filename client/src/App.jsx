@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { SERVER_URL, socket } from "./socket";
 
 const SAVED_NAME_KEY = "critterfall-player-name";
+const GUIDE_SEEN_KEY = "critterfall-field-guide-seen";
 const SAVED_CLIENT_ID_KEY = "critterfall-client-id";
 
 function getClientId() {
@@ -456,6 +457,238 @@ function CatalogModal({ catalog, error, isOpen, activeTab, search, onOpen, onClo
   );
 }
 
+const FIELD_GUIDE_PAGES = [
+  {
+    tab: "Welcome",
+    emoji: "🌱",
+    title: "Critterfall",
+    subtitle: "A field guide to weird little creatures",
+    color: "green",
+    blocks: [
+      { kind: "lede", text: "Grow the strangest, highest-scoring critter in the lobby before the world goes quiet." },
+      { kind: "text", text: "Each turn you play a Trait from your hand into your public Trait Row. Traits give points, trigger effects, and stack into one glorious mutant." },
+      { kind: "callout", emoji: "🏆", title: "How you win", text: "When the final Age is revealed, the world ends. Whoever's Trait Row scores the most points wins." }
+    ]
+  },
+  {
+    tab: "Your Turn",
+    emoji: "🔄",
+    title: "A Turn, Step by Step",
+    subtitle: "Play, resolve, refill",
+    color: "blue",
+    blocks: [
+      { kind: "steps", items: [
+        { emoji: "🃏", title: "Play a Trait", text: "Choose one card from your hand and play it face-up into your Trait Row." },
+        { emoji: "⚡", title: "Resolve its effect", text: "Immediate effects fire right away — draw, steal, destroy, attach, and more." },
+        { emoji: "💧", title: "Stabilize", text: "At the END of your turn you draw back up toward your Gene Pool size. This happens once — not after every extra play." }
+      ] },
+      { kind: "callout", emoji: "➕", title: "Extra plays", text: "Some Traits let you play more Traits this turn. You only Stabilize once, when your whole turn is finished." }
+    ]
+  },
+  {
+    tab: "Colors",
+    emoji: "🎨",
+    title: "The Five Colors",
+    subtitle: "Every Trait wears one",
+    color: "purple",
+    blocks: [
+      { kind: "colorList", items: [
+        { color: "green", emoji: "🌿", name: "Green", text: "Growth — drawing cards, gene pool, and going wide." },
+        { color: "red", emoji: "🔥", name: "Red", text: "Aggression — destroying, poisoning, and stealing." },
+        { color: "blue", emoji: "🌊", name: "Blue", text: "Control — hands, turn order, and disruption." },
+        { color: "purple", emoji: "🔮", name: "Purple", text: "Scoring — traits that scale and count things up." },
+        { color: "colorless", emoji: "⚪", name: "Colorless", text: "Neutral — flexible odds and ends." }
+      ] },
+      { kind: "callout", emoji: "🧮", title: "Colors count", text: "Some Traits score or trigger based on how many of a color sit in your Row — build combos on purpose." }
+    ]
+  },
+  {
+    tab: "Keywords",
+    emoji: "📖",
+    title: "Keyword Glossary",
+    subtitle: "The words that bend the rules",
+    color: "red",
+    blocks: [
+      { kind: "glossary", items: [
+        { emoji: "👑", term: "Dominant", text: "A powerful Trait that resists being stolen or destroyed. Hard to remove — plan around it." },
+        { emoji: "🦠", term: "Parasite", text: "Lives in an OPPONENT's Trait Row and is worth negative points to them. A gift nobody wants." },
+        { emoji: "🌙", term: "Late", text: "Can only be played in the Late window at the end of your turn — save it for the right moment." },
+        { emoji: "☠️", term: "Poison", text: "A poisoned Trait is destroyed when the Age Stabilizes. Tick, tick, tick." }
+      ] }
+    ]
+  },
+  {
+    tab: "Ages",
+    emoji: "🌋",
+    title: "The Ages",
+    subtitle: "The world keeps changing",
+    color: "green",
+    blocks: [
+      { kind: "text", text: "Between rounds a new Age is revealed. Each Age has a global effect that hits every player — a shift in gene pools, a mass discard, or a wipe of high-value Traits." },
+      { kind: "callout", emoji: "💥", title: "Catastrophes", text: "Some Ages are Catastrophes — brutal, board-changing events. Watch the Next Age preview and brace yourself." },
+      { kind: "callout", emoji: "⏳", title: "The end of the world", text: "When the Age deck runs out, the final Age triggers scoring. Everything you built is tallied at once." }
+    ]
+  },
+  {
+    tab: "Scoring",
+    emoji: "🏆",
+    title: "Scoring & Winning",
+    subtitle: "Count it all up",
+    color: "purple",
+    blocks: [
+      { kind: "steps", items: [
+        { emoji: "🔢", title: "Trait points", text: "Add up the points printed on every Trait in your Row." },
+        { emoji: "📈", title: "Dynamic values", text: "Some Traits are worth more based on colors, hand size, or the state of the board at the end." },
+        { emoji: "🎁", title: "End bonuses", text: "End-of-game effects add extra points on top." }
+      ] },
+      { kind: "callout", emoji: "👑", title: "Highest total wins", text: "Biggest score when the world ends takes the crown. Ties share the win." }
+    ]
+  }
+];
+
+function FieldGuideBlock({ block }) {
+  if (block.kind === "lede") {
+    return <p className="guide-lede">{block.text}</p>;
+  }
+
+  if (block.kind === "text") {
+    return <p className="guide-text">{block.text}</p>;
+  }
+
+  if (block.kind === "callout") {
+    return (
+      <div className="guide-callout">
+        <span className="guide-callout__emoji" aria-hidden="true">{block.emoji}</span>
+        <div>
+          <strong>{block.title}</strong>
+          <p>{block.text}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (block.kind === "steps") {
+    return (
+      <ol className="guide-steps">
+        {block.items.map((item, index) => (
+          <li key={item.title} className="guide-step">
+            <span className="guide-step__num">{index + 1}</span>
+            <span className="guide-step__emoji" aria-hidden="true">{item.emoji}</span>
+            <div>
+              <strong>{item.title}</strong>
+              <p>{item.text}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+    );
+  }
+
+  if (block.kind === "colorList") {
+    return (
+      <ul className="guide-colors">
+        {block.items.map((item) => (
+          <li key={item.name} className={`guide-color guide-color--${item.color}`}>
+            <span className="guide-color__dot" aria-hidden="true">{item.emoji}</span>
+            <div>
+              <strong>{item.name}</strong>
+              <p>{item.text}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
+  if (block.kind === "glossary") {
+    return (
+      <dl className="guide-glossary">
+        {block.items.map((item) => (
+          <div key={item.term} className="guide-term">
+            <dt>
+              <span className="guide-term__emoji" aria-hidden="true">{item.emoji}</span>
+              {item.term}
+            </dt>
+            <dd>{item.text}</dd>
+          </div>
+        ))}
+      </dl>
+    );
+  }
+
+  return null;
+}
+
+function FieldGuideModal({ isOpen, page, onClose, onGoto, onPrev, onNext }) {
+  if (!isOpen) {
+    return null;
+  }
+
+  const total = FIELD_GUIDE_PAGES.length;
+  const current = Math.min(Math.max(page, 0), total - 1);
+  const spread = FIELD_GUIDE_PAGES[current];
+
+  return (
+    <div className="guide-backdrop" role="dialog" aria-modal="true" aria-label="Field Guide">
+      <section className={`guide-book guide-book--${spread.color}`}>
+        <button className="guide-close" type="button" onClick={onClose} aria-label="Close Field Guide">
+          ✕
+        </button>
+
+        <nav className="guide-tabs" aria-label="Field Guide chapters">
+          {FIELD_GUIDE_PAGES.map((entry, index) => (
+            <button
+              key={entry.tab}
+              type="button"
+              className={`guide-tab${index === current ? " guide-tab--active" : ""}`}
+              onClick={() => onGoto(index)}
+            >
+              <span aria-hidden="true">{entry.emoji}</span>
+              {entry.tab}
+            </button>
+          ))}
+        </nav>
+
+        <div key={current} className="guide-page">
+          <header className="guide-page__head">
+            <span className="guide-page__emoji" aria-hidden="true">{spread.emoji}</span>
+            <div>
+              <h2>{spread.title}</h2>
+              <p>{spread.subtitle}</p>
+            </div>
+          </header>
+
+          <div className="guide-page__body">
+            {spread.blocks.map((block, index) => (
+              <FieldGuideBlock key={index} block={block} />
+            ))}
+          </div>
+        </div>
+
+        <footer className="guide-foot">
+          <button className="secondary-button" type="button" onClick={onPrev} disabled={current === 0}>
+            ← Back
+          </button>
+          <div className="guide-dots" aria-hidden="true">
+            {FIELD_GUIDE_PAGES.map((entry, index) => (
+              <span key={entry.tab} className={`guide-dot${index === current ? " guide-dot--active" : ""}`} />
+            ))}
+          </div>
+          {current === total - 1 ? (
+            <button className="primary-button" type="button" onClick={onClose}>
+              Let's play! 🎉
+            </button>
+          ) : (
+            <button className="primary-button" type="button" onClick={onNext}>
+              Next →
+            </button>
+          )}
+        </footer>
+      </section>
+    </div>
+  );
+}
+
 function ScoreBreakdown({ finalScores, isHost, onNewGame }) {
   const winners = finalScores.filter((entry) => entry.isWinner).map((entry) => entry.name);
 
@@ -507,6 +740,8 @@ function App() {
   const [catalogOpen, setCatalogOpen] = useState(false);
   const [catalogTab, setCatalogTab] = useState("traits");
   const [catalogSearch, setCatalogSearch] = useState("");
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [guidePage, setGuidePage] = useState(0);
   const [ageAnnouncement, setAgeAnnouncement] = useState(null);
 
   useEffect(() => {
@@ -585,6 +820,28 @@ function App() {
     const timer = window.setTimeout(() => setAgeAnnouncement(null), 2100);
     return () => window.clearTimeout(timer);
   }, [isPlaying, roomState?.currentAge?.id]);
+
+  useEffect(() => {
+    if (localStorage.getItem(GUIDE_SEEN_KEY)) {
+      return;
+    }
+    setGuidePage(0);
+    setGuideOpen(true);
+  }, []);
+
+  function openGuide() {
+    setGuidePage(0);
+    setGuideOpen(true);
+  }
+
+  function closeGuide() {
+    setGuideOpen(false);
+    try {
+      localStorage.setItem(GUIDE_SEEN_KEY, "1");
+    } catch (storageError) {
+      // ignore storage failures (private mode)
+    }
+  }
 
   async function emitAction(eventName, payload = {}) {
     if (!socket.connected) {
@@ -796,6 +1053,17 @@ function App() {
     />
   );
 
+  const guideModal = (
+    <FieldGuideModal
+      isOpen={guideOpen}
+      page={guidePage}
+      onClose={closeGuide}
+      onGoto={(index) => setGuidePage(index)}
+      onPrev={() => setGuidePage((value) => Math.max(0, value - 1))}
+      onNext={() => setGuidePage((value) => Math.min(FIELD_GUIDE_PAGES.length - 1, value + 1))}
+    />
+  );
+
   if (!roomState) {
     return (
       <main className="app-shell">
@@ -834,9 +1102,14 @@ function App() {
                 {busyAction === "joinRoom" ? "Joining..." : "Join Room"}
               </button>
             </div>
-            <button className="secondary-button" type="button" onClick={openCatalog}>
-              Card Dictionary
-            </button>
+            <div className="split-fields">
+              <button className="secondary-button" type="button" onClick={openGuide}>
+                📖 Field Guide
+              </button>
+              <button className="secondary-button" type="button" onClick={openCatalog}>
+                Card Dictionary
+              </button>
+            </div>
             <div className="status-strip">
               <span className="meta-pill">{status}</span>
               <span className="meta-pill">Socket: {SERVER_URL}</span>
@@ -860,6 +1133,7 @@ function App() {
           </article>
         </section>
         {catalogModal}
+        {guideModal}
       </main>
     );
   }
@@ -903,6 +1177,9 @@ function App() {
                 <button className="secondary-button" type="button" onClick={copyInviteLink}>
                   Copy Invite Link
                 </button>
+                <button className="secondary-button" type="button" onClick={openGuide}>
+                  📖 Field Guide
+                </button>
                 <button className="secondary-button" type="button" onClick={openCatalog}>
                   Card Dictionary
                 </button>
@@ -927,6 +1204,7 @@ function App() {
 
         <LogPanel log={roomState.log} />
         {catalogModal}
+        {guideModal}
       </main>
     );
   }
@@ -983,6 +1261,9 @@ function App() {
               disabled={canPassLate ? false : !(canSkip || canEndTurn)}
             >
               {canPassLate ? "Pass Late" : canEndTurn ? "End Turn" : "Skip and Draw 2"}
+            </button>
+            <button className="secondary-button" type="button" onClick={openGuide}>
+              📖 Field Guide
             </button>
             <button className="secondary-button" type="button" onClick={openCatalog}>
               Dictionary
@@ -1066,6 +1347,7 @@ function App() {
 
         <LogPanel log={roomState.log} />
         {catalogModal}
+        {guideModal}
       </main>
     );
   }
@@ -1088,6 +1370,7 @@ function App() {
 
         <LogPanel log={roomState.log} />
         {catalogModal}
+        {guideModal}
       </main>
     );
   }
