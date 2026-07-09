@@ -3,6 +3,17 @@ import { SERVER_URL, socket } from "./socket";
 
 const SAVED_NAME_KEY = "critterfall-player-name";
 
+function getRoomCodeFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return String(params.get("room") || "").trim().toUpperCase();
+}
+
+function getInviteLink(code) {
+  const url = new URL(window.location.href);
+  url.searchParams.set("room", code);
+  return url.toString();
+}
+
 function TraitCard({ card, actionLabel, onAction, disabled, subtle = false }) {
   return (
     <article className={`trait-card${subtle ? " trait-card--subtle" : ""}`}>
@@ -127,11 +138,12 @@ function ScoreBreakdown({ finalScores, isHost, onNewGame }) {
 
 function App() {
   const [playerName, setPlayerName] = useState(() => localStorage.getItem(SAVED_NAME_KEY) || "");
-  const [joinCode, setJoinCode] = useState("");
+  const [joinCode, setJoinCode] = useState(() => getRoomCodeFromUrl());
   const [roomState, setRoomState] = useState(null);
   const [status, setStatus] = useState(socket.connected ? "Connected" : "Connecting");
   const [error, setError] = useState("");
   const [busyAction, setBusyAction] = useState("");
+  const [shareStatus, setShareStatus] = useState("");
 
   useEffect(() => {
     const handleConnect = () => setStatus("Connected");
@@ -141,6 +153,10 @@ function App() {
       setJoinCode(nextState.code || "");
       setError("");
       setBusyAction("");
+
+      if (nextState.code) {
+        window.history.replaceState(null, "", getInviteLink(nextState.code));
+      }
     };
     const handleActionError = (message) => {
       setError(message);
@@ -230,6 +246,21 @@ function App() {
     if (!response.ok) {
       setError(response.message || "Could not join that room.");
       setBusyAction("");
+    }
+  }
+
+  async function copyInviteLink() {
+    if (!roomState?.code) {
+      return;
+    }
+
+    const inviteLink = getInviteLink(roomState.code);
+
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setShareStatus("Invite link copied.");
+    } catch (_error) {
+      setShareStatus(inviteLink);
     }
   }
 
@@ -389,6 +420,12 @@ function App() {
             <article className="panel panel--nested">
               <h3>Ready Check</h3>
               <p>{roomState.players.length} player(s) joined.</p>
+              <div className="invite-actions">
+                <button className="secondary-button" type="button" onClick={copyInviteLink}>
+                  Copy Invite Link
+                </button>
+                {shareStatus ? <p className="muted-text">{shareStatus}</p> : null}
+              </div>
               <button
                 className="primary-button"
                 type="button"

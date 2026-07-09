@@ -259,6 +259,11 @@ input {
   background: rgba(255, 252, 245, 0.9);
 }
 
+.invite-actions {
+  display: grid;
+  gap: 8px;
+}
+
 .turn-banner {
   padding: 14px 16px;
   border-radius: 18px;
