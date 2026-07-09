@@ -371,14 +371,12 @@ function handLimitDiscardChoice(room, player) {
   };
 }
 
-function nextHandLimitDiscardChoice(room) {
-  const player = room.players.find((candidate) => needsHandLimitDiscard(candidate));
-  return player ? handLimitDiscardChoice(room, player) : false;
-}
+function queueHandLimitDiscard(room, player, context = {}) {
+  if (!player || !needsHandLimitDiscard(player)) {
+    return false;
+  }
 
-function queueNextHandLimitDiscard(room, context = {}) {
-  const choice = nextHandLimitDiscardChoice(room);
-  return choice ? queueChoice(room, choice, context) : false;
+  return queueChoice(room, handLimitDiscardChoice(room, player), context);
 }
 
 function resolveCount(room, player, value, fallback = 1) {
@@ -1048,7 +1046,7 @@ function applyHandLimitDiscardChoice(room, choice, option, actor) {
   addToDiscard(room, card, actor.id);
   addLog(room, `${actor.name} discarded ${card.name} down to their Gene Pool.`, actor.id);
   addLog(room, `${actor.name} discarded down to their Gene Pool.`);
-  return nextHandLimitDiscardChoice(room);
+  return needsHandLimitDiscard(actor) ? handLimitDiscardChoice(room, actor) : false;
 }
 
 function applyPublicTraitChoice(room, choice, option, actor) {
@@ -1747,11 +1745,6 @@ function endTurn(room) {
 
   if (!next) {
     applyStabilize(room);
-
-    if (queueNextHandLimitDiscard(room, { finishAfterChoice: "stabilize" })) {
-      return;
-    }
-
     completeStabilize(room);
     return;
   }
@@ -1856,11 +1849,11 @@ function continueAfterActionCleanup(room) {
     return;
   }
 
-  if (queueNextHandLimitDiscard(room, { finishAfterChoice: "actionCleanup" })) {
+  const player = currentPlayer(room);
+
+  if (queueHandLimitDiscard(room, player, { finishAfterChoice: "actionCleanup" })) {
     return;
   }
-
-  const player = currentPlayer(room);
 
   if (room.turnState?.playsRemaining <= 0) {
     if (player && !room.turnState.lateWindow && player.hand.some(isLate)) {
@@ -1961,7 +1954,7 @@ function skipTurn(room, playerId) {
   addLog(room, `${player.name} skipped and drew ${drawn} card${drawn === 1 ? "" : "s"}.`, player.id);
   addLog(room, `${player.name} skipped their play.`);
 
-  if (queueNextHandLimitDiscard(room, { finishAfterChoice: "skipTurn" })) {
+  if (queueHandLimitDiscard(room, player, { finishAfterChoice: "skipTurn" })) {
     return;
   }
 
