@@ -365,6 +365,10 @@ function choiceActionLabel(choice) {
     return "Take & Play";
   }
 
+  if (choice.type === "attachHost") {
+    return "Attach Here";
+  }
+
   if (choice.type === "publicTrait") {
     if (choice.mode === "steal") {
       return "Steal This";
@@ -454,12 +458,32 @@ function AgeAnnouncement({ age }) {
   }
 
   return (
-    <div className={`age-announcement${age.isCatastrophe ? " age-announcement--catastrophe" : ""}`}>
-      <p className="eyebrow">Age {age.number}</p>
-      <h2>
-        {age.emoji} {age.name}
-      </h2>
-      <p>{age.isCatastrophe ? "Catastrophe" : "New Age"}</p>
+    <div className="age-backdrop" aria-hidden="true">
+      <div className={`age-announcement${age.isCatastrophe ? " age-announcement--catastrophe" : ""}`}>
+        <span className="age-announcement__emoji">{age.emoji}</span>
+        <p className="eyebrow">{age.isCatastrophe ? "☄️ Catastrophe" : `Age ${age.number}`}</p>
+        <h2>{age.name}</h2>
+        <p className="age-announcement__sub">{age.text || (age.isCatastrophe ? "The world convulses…" : "A new Age dawns")}</p>
+      </div>
+    </div>
+  );
+}
+
+function PlaySpotlight({ play }) {
+  if (!play) {
+    return null;
+  }
+
+  return (
+    <div className="play-spotlight" key={play.key} aria-hidden="true">
+      <div className={`play-spotlight__inner${play.isYou ? " play-spotlight__inner--you" : ""}`}>
+        <p className="play-spotlight__who">
+          <span className="play-spotlight__actor">{play.isYou ? "You" : play.playerName}</span> played
+        </p>
+        <div className="play-spotlight__card">
+          <TraitCard card={play.card} subtle />
+        </div>
+      </div>
     </div>
   );
 }
@@ -840,6 +864,8 @@ function App() {
   const [guideOpen, setGuideOpen] = useState(false);
   const [guidePage, setGuidePage] = useState(0);
   const [ageAnnouncement, setAgeAnnouncement] = useState(null);
+  const [playSpotlight, setPlaySpotlight] = useState(null);
+  const lastPlaySeqRef = useRef(0);
 
   useEffect(() => {
     const handleConnect = () => {
@@ -914,9 +940,23 @@ function App() {
     }
 
     setAgeAnnouncement(roomState.currentAge);
-    const timer = window.setTimeout(() => setAgeAnnouncement(null), 2100);
+    const timer = window.setTimeout(() => setAgeAnnouncement(null), 2600);
     return () => window.clearTimeout(timer);
   }, [isPlaying, roomState?.currentAge?.id]);
+
+  useEffect(() => {
+    const lastPlay = roomState?.lastPlayedTrait;
+    if (!isPlaying || !lastPlay?.seq) {
+      return undefined;
+    }
+    if (lastPlay.seq === lastPlaySeqRef.current) {
+      return undefined;
+    }
+    lastPlaySeqRef.current = lastPlay.seq;
+    setPlaySpotlight({ ...lastPlay, key: lastPlay.seq });
+    const timer = window.setTimeout(() => setPlaySpotlight(null), 1900);
+    return () => window.clearTimeout(timer);
+  }, [roomState?.lastPlayedTrait?.seq, isPlaying]);
 
   useEffect(() => {
     if (localStorage.getItem(GUIDE_SEEN_KEY)) {
@@ -1310,6 +1350,7 @@ function App() {
     return (
       <main className="app-shell">
         <AgeAnnouncement age={ageAnnouncement} />
+        <PlaySpotlight play={playSpotlight} />
         <section key={roomState.currentAge?.id || "age"} className="panel panel--hero age-panel">
           <div className="section-heading">
             <div>

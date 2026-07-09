@@ -1463,6 +1463,81 @@ function applyPeekPlayChoice(room, choice, option, actor) {
     effectDepth: 0
   });
   room.lastPlayedTrait = { card: stolen, playerId: actor.id };
+  room.lastPlayedSeq = (room.lastPlayedSeq || 0) + 1;
+  return false;
+}
+
+function performAttach(room, actor, sourceCard, params, hostPlayer, hostCard, context = {}) {
+  const selfIndex = actor.board.findIndex((candidate) => candidate.instanceId === sourceCard.instanceId);
+  let attachmentCard = sourceCard;
+
+  if (selfIndex !== -1) {
+    [attachmentCard] = actor.board.splice(selfIndex, 1);
+  }
+
+  attachmentCard.attachSpec = {
+    protect: Array.isArray(params.protect) ? params.protect : [],
+    valueBonus: Number(params.valueBonus || 0),
+    playedById: actor.id
+  };
+  hostCard.attachments = cardAttachments(hostCard).concat(attachmentCard);
+  addLog(room, `${actor.name} attached ${attachmentCard.name} to ${hostPlayer.name}'s ${hostCard.name}.`);
+
+  if (params.playHostAction && hostCard.immediateEffect) {
+    const pending = applyEffect(room, actor, hostCard.immediateEffect, hostCard, {
+      finishAfterChoice: context.finishAfterChoice,
+      effectDepth: context.effectDepth
+    });
+
+    if (pending) {
+      return true;
+    }
+  }
+
+  return applyThen(room, actor, sourceCard, params, context);
+}
+
+function queueAttachChoice(room, actor, sourceCard, params, entries, context) {
+  const options = entries.map((entry) => ({
+    id: entry.card.instanceId,
+    ownerId: entry.player.id,
+    cardInstanceId: entry.card.instanceId
+  }));
+
+  if (!options.length) {
+    return false;
+  }
+
+  return queueChoice(
+    room,
+    {
+      type: "attachHost",
+      playerId: actor.id,
+      actorId: actor.id,
+      sourceCard,
+      params,
+      prompt: choicePrompt(sourceCard, `choose which Trait to attach ${sourceCard.name} to`),
+      choices: options
+    },
+    context
+  );
+}
+
+function applyAttachChoice(room, choice, option, actor) {
+  const hostPlayer = findPlayer(room, option.ownerId);
+  const hostCard = hostPlayer?.board.find((candidate) => candidate.instanceId === option.cardInstanceId);
+
+  if (!hostPlayer || !hostCard) {
+    return false;
+  }
+
+  performAttach(room, actor, choice.sourceCard, choice.params, hostPlayer, hostCard, {
+    finishAfterChoice: choice.finishAfterChoice,
+    effectDepth: choice.context?.effectDepth || 0
+  });
+  // performAttach already ran playHostAction and params.then; neutralize the
+  // then so resolveChoice's post-switch applyThen doesn't fire it twice.
+  choice.params = { ...choice.params, then: null };
   return false;
 }
 
@@ -1945,6 +2020,7 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
         addLog(room, `${actor.name} immediately played ${stolen.name}.`);
         const pending = applyEffect(room, actor, stolen.immediateEffect, stolen, { finishAfterChoice: context.finishAfterChoice, effectDepth: context.effectDepth });
         room.lastPlayedTrait = { card: stolen, playerId: actor.id };
+        room.lastPlayedSeq = (room.lastPlayedSeq || 0) + 1;
 
         if (pending) {
           return true;
@@ -2012,35 +2088,16 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
       const sorted = [...entries].sort(
         (a, b) => cardScoreForHost(b.card, b.player, room) - cardScoreForHost(a.card, a.player, room)
       );
-      const pick = params.hostFallback === "lowest" ? sorted[sorted.length - 1] : sorted[0];
 
-      const selfIndex = actor.board.findIndex((candidate) => candidate.instanceId === sourceCard.instanceId);
-      let attachmentCard = sourceCard;
-
-      if (selfIndex !== -1) {
-        [attachmentCard] = actor.board.splice(selfIndex, 1);
-      }
-
-      attachmentCard.attachSpec = {
-        protect: Array.isArray(params.protect) ? params.protect : [],
-        valueBonus: Number(params.valueBonus || 0),
-        playedById: actor.id
-      };
-      pick.card.attachments = cardAttachments(pick.card).concat(attachmentCard);
-      addLog(room, `${actor.name} attached ${attachmentCard.name} to ${pick.player.name}'s ${pick.card.name}.`);
-
-      if (params.playHostAction && pick.card.immediateEffect) {
-        const pending = applyEffect(room, actor, pick.card.immediateEffect, pick.card, {
-          finishAfterChoice: context.finishAfterChoice,
-          effectDepth: context.effectDepth
-        });
-
+      if (context.finishAfterChoice && entries.length > 1) {
+        const pending = queueAttachChoice(room, actor, sourceCard, params, entries, context);
         if (pending) {
           return true;
         }
       }
 
-      return applyThen(room, actor, sourceCard, params, context);
+      const pick = params.hostFallback === "lowest" ? sorted[sorted.length - 1] : sorted[0];
+      return performAttach(room, actor, sourceCard, params, pick.player, pick.card, context);
     }
 
     case "massHandDiscard": {
@@ -2911,6 +2968,7 @@ function playCard(room, playerId, cardInstanceId) {
   }
 
   room.lastPlayedTrait = { card, playerId: player.id };
+  room.lastPlayedSeq = (room.lastPlayedSeq || 0) + 1;
 
   if (isWaitingForChoice) {
     return;
@@ -3016,6 +3074,9 @@ function resolveChoice(room, playerId, choiceId, optionId) {
       break;
     case "peekPlay":
       followup = applyPeekPlayChoice(room, choice, option, actor);
+      break;
+    case "attachHost":
+      followup = applyAttachChoice(room, choice, option, actor);
       break;
     case "targetPlayer":
       followup = applyTargetPlayerChoice(room, choice, option, actor);
@@ -3543,7 +3604,7 @@ function decorateChoiceOption(room, choice, option, viewerId) {
       : null;
   }
 
-  if (choice.type === "publicTrait") {
+  if (choice.type === "publicTrait" || choice.type === "attachHost") {
     const owner = findPlayer(room, option.ownerId);
     const card = owner?.board.find((candidate) => candidate.instanceId === option.cardInstanceId);
     return card
@@ -3551,7 +3612,7 @@ function decorateChoiceOption(room, choice, option, viewerId) {
           id: option.id,
           ownerId: owner.id,
           ownerName: owner.name,
-          card: decorateCard(room, card)
+          card: decorateCard(room, card, owner)
         }
       : null;
   }
@@ -3617,6 +3678,15 @@ function sanitizeRoomForPlayer(room, playerId) {
     pendingChoice: sanitizePendingChoice(room, playerId),
     turnState: room.turnState,
     finalScores: room.finalScores,
+    lastPlayedTrait: room.lastPlayedTrait?.card
+      ? {
+          seq: room.lastPlayedSeq || 0,
+          playerId: room.lastPlayedTrait.playerId,
+          playerName: findPlayer(room, room.lastPlayedTrait.playerId)?.name || "",
+          isYou: room.lastPlayedTrait.playerId === playerId,
+          card: decorateCard(room, room.lastPlayedTrait.card, findPlayer(room, room.lastPlayedTrait.playerId))
+        }
+      : null,
     connected: Boolean(viewer)
   };
 }

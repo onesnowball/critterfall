@@ -688,38 +688,123 @@ input {
   align-content: start;
 }
 
-.age-announcement {
+.age-backdrop {
   position: fixed;
-  z-index: 20;
-  inset: 50% auto auto 50%;
-  width: min(520px, calc(100vw - 32px));
-  transform: translate(-50%, -50%);
-  border: 1px solid rgba(255, 250, 241, 0.34);
-  border-radius: 22px;
-  padding: 28px;
+  z-index: 40;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: radial-gradient(circle at center, rgba(10, 14, 9, 0.42), rgba(10, 14, 9, 0.78));
+  pointer-events: none;
+  animation: age-backdrop-fade 2600ms ease both;
+}
+
+.age-announcement {
+  position: relative;
+  width: min(560px, calc(100vw - 32px));
+  border: 3px solid rgba(255, 250, 241, 0.5);
+  border-radius: 26px;
+  padding: 34px 30px;
   background:
-    linear-gradient(135deg, rgba(31, 38, 28, 0.94), rgba(79, 111, 58, 0.9)),
-    rgba(31, 38, 28, 0.94);
+    linear-gradient(135deg, rgba(31, 38, 28, 0.96), rgba(79, 111, 58, 0.94)),
+    rgba(31, 38, 28, 0.96);
   color: #fffaf1;
   text-align: center;
-  box-shadow: 0 30px 90px rgba(13, 18, 12, 0.42);
+  box-shadow: 0 34px 100px rgba(13, 18, 12, 0.55), 0 0 0 6px rgba(255, 250, 241, 0.06);
   pointer-events: none;
-  animation: age-center-reveal 2100ms ease both;
+  animation: age-center-reveal 2600ms cubic-bezier(0.18, 0.9, 0.3, 1.2) both;
+}
+
+.age-announcement__emoji {
+  display: block;
+  font-size: clamp(3.4rem, 10vw, 5.6rem);
+  line-height: 1;
+  margin-bottom: 6px;
+  animation: age-emoji-pop 2600ms ease both;
 }
 
 .age-announcement h2 {
-  font-size: clamp(2rem, 5vw, 3.4rem);
+  font-size: clamp(2rem, 5.6vw, 3.6rem);
+  margin: 4px 0;
+}
+
+.age-announcement__sub {
+  max-width: 42ch;
+  margin: 6px auto 0;
 }
 
 .age-announcement .eyebrow,
 .age-announcement p {
-  color: rgba(255, 250, 241, 0.82);
+  color: rgba(255, 250, 241, 0.86);
 }
 
 .age-announcement--catastrophe {
+  border-color: rgba(255, 214, 175, 0.6);
   background:
-    linear-gradient(135deg, rgba(84, 25, 25, 0.96), rgba(163, 71, 42, 0.92)),
-    rgba(84, 25, 25, 0.96);
+    linear-gradient(135deg, rgba(84, 25, 25, 0.97), rgba(163, 71, 42, 0.94)),
+    rgba(84, 25, 25, 0.97);
+  animation: age-center-reveal 2600ms cubic-bezier(0.18, 0.9, 0.3, 1.2) both,
+    age-catastrophe-shake 620ms ease-in-out 260ms 3;
+}
+
+.play-spotlight {
+  position: fixed;
+  z-index: 35;
+  inset: auto 0 26px 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.play-spotlight__inner {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 14px 18px 16px;
+  border-radius: 20px;
+  border: 2px solid rgba(255, 250, 241, 0.28);
+  background: linear-gradient(160deg, rgba(24, 30, 22, 0.92), rgba(41, 52, 36, 0.9));
+  box-shadow: 0 22px 60px rgba(10, 14, 9, 0.5);
+  animation: play-spotlight-in 1900ms cubic-bezier(0.16, 0.9, 0.3, 1.15) both;
+}
+
+.play-spotlight__inner--you {
+  border-color: rgba(247, 197, 84, 0.7);
+  box-shadow: 0 22px 60px rgba(10, 14, 9, 0.5), 0 0 0 3px rgba(247, 197, 84, 0.28);
+}
+
+.play-spotlight__who {
+  margin: 0;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  color: rgba(255, 250, 241, 0.82);
+}
+
+.play-spotlight__actor {
+  font-weight: 800;
+  color: #f7c554;
+}
+
+.play-spotlight__card {
+  width: min(240px, 70vw);
+  transform-origin: center bottom;
+  animation: play-card-pop 1900ms cubic-bezier(0.16, 0.9, 0.3, 1.15) both;
+}
+
+.play-spotlight__card .trait-card {
+  margin: 0;
+  cursor: default;
+}
+
+.hand-grid .trait-card {
+  transition: transform 160ms ease, box-shadow 160ms ease, z-index 0s;
+}
+
+.hand-grid .trait-card:hover {
+  transform: translateY(-10px) scale(1.06);
+  box-shadow: 0 26px 60px rgba(10, 14, 9, 0.5);
+  z-index: 5;
 }
 
 .catalog-backdrop {
@@ -872,18 +957,104 @@ input {
 @keyframes age-center-reveal {
   0% {
     opacity: 0;
-    transform: translate(-50%, -46%) scale(0.92);
+    transform: translateY(24px) scale(0.82);
   }
 
-  14%,
-  74% {
+  12%,
+  78% {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    transform: translateY(0) scale(1);
   }
 
   100% {
     opacity: 0;
-    transform: translate(-50%, -54%) scale(1.04);
+    transform: translateY(-18px) scale(1.05);
+  }
+}
+
+@keyframes age-backdrop-fade {
+  0%,
+  84% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes age-emoji-pop {
+  0% {
+    transform: scale(0.2) rotate(-14deg);
+    opacity: 0;
+  }
+
+  16% {
+    transform: scale(1.18) rotate(6deg);
+    opacity: 1;
+  }
+
+  26%,
+  78% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+}
+
+@keyframes age-catastrophe-shake {
+  0%,
+  100% {
+    margin-left: 0;
+  }
+
+  25% {
+    margin-left: -12px;
+  }
+
+  75% {
+    margin-left: 12px;
+  }
+}
+
+@keyframes play-spotlight-in {
+  0% {
+    opacity: 0;
+    transform: translateY(40px) scale(0.9);
+  }
+
+  10%,
+  80% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.96);
+  }
+}
+
+@keyframes play-card-pop {
+  0% {
+    transform: scale(0.6) rotate(-6deg);
+  }
+
+  12% {
+    transform: scale(1.12) rotate(3deg);
+  }
+
+  22%,
+  80% {
+    transform: scale(1) rotate(0deg);
+  }
+
+  100% {
+    transform: scale(0.98);
   }
 }
 
@@ -1392,7 +1563,15 @@ input {
   .score-pop__delta,
   .guide-page,
   .guide-book,
-  .guide-page__emoji {
+  .guide-page__emoji,
+  .age-announcement__emoji,
+  .age-announcement--catastrophe,
+  .play-spotlight__inner,
+  .play-spotlight__card {
     animation: none !important;
+  }
+
+  .hand-grid .trait-card:hover {
+    transform: none;
   }
 }
