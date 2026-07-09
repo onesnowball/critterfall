@@ -227,6 +227,7 @@ input {
   background: rgba(163, 71, 42, 0.12);
   color: var(--accent-strong);
   font-weight: 700;
+  animation: number-pop 520ms ease both;
 }
 
 .point-pill--negative {
@@ -309,6 +310,10 @@ input {
   border: 1px solid rgba(163, 71, 42, 0.16);
 }
 
+.age-panel {
+  animation: age-reveal 900ms ease both;
+}
+
 .trait-card {
   display: grid;
   gap: 12px;
@@ -322,6 +327,29 @@ input {
 
 .trait-card--subtle {
   background: rgba(255, 251, 244, 0.9);
+}
+
+.trait-card--dominant {
+  border-color: rgba(173, 118, 21, 0.72);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 223, 128, 0.55),
+    0 10px 28px rgba(143, 91, 16, 0.18);
+}
+
+.trait-card--late {
+  border-style: dashed;
+}
+
+.trait-card--poisoned {
+  box-shadow:
+    inset 0 0 0 2px rgba(141, 31, 31, 0.22),
+    0 10px 28px rgba(141, 31, 31, 0.14);
+}
+
+.trait-card--parasite {
+  background:
+    linear-gradient(180deg, rgba(255, 248, 241, 0.98), rgba(239, 229, 214, 0.95)),
+    repeating-linear-gradient(135deg, rgba(122, 46, 46, 0.08) 0 8px, transparent 8px 16px);
 }
 
 .trait-card__top {
@@ -358,8 +386,57 @@ input {
   box-shadow: 0 18px 45px rgba(163, 71, 42, 0.14);
 }
 
+.board-traits {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
 .hand-grid {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.choice-panel {
+  border-color: rgba(163, 71, 42, 0.28);
+  animation: choice-enter 240ms ease both;
+}
+
+.choice-panel--waiting {
+  background: rgba(255, 251, 244, 0.95);
+}
+
+.choice-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.choice-tile {
+  min-height: 120px;
+  border: 1px solid rgba(61, 77, 65, 0.2);
+  border-radius: 18px;
+  padding: 16px;
+  background: rgba(255, 252, 245, 0.96);
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.choice-tile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(39, 31, 17, 0.16);
+}
+
+.choice-tile--facedown {
+  background:
+    linear-gradient(135deg, rgba(79, 111, 58, 0.18), rgba(163, 71, 42, 0.14)),
+    repeating-linear-gradient(45deg, rgba(31, 38, 28, 0.08) 0 8px, transparent 8px 16px),
+    rgba(255, 252, 245, 0.96);
+}
+
+.choice-tile strong {
+  font-size: 1.7rem;
+  color: var(--accent-strong);
 }
 
 .discard-grid {
@@ -386,6 +463,11 @@ input {
   padding: 12px 14px;
   border-radius: 14px;
   background: rgba(255, 252, 245, 0.9);
+}
+
+.log-entry:first-child {
+  border: 1px solid rgba(163, 71, 42, 0.2);
+  box-shadow: inset 4px 0 0 rgba(163, 71, 42, 0.42);
 }
 
 .log-entry--private {
@@ -422,6 +504,49 @@ input {
 .empty-state {
   color: var(--muted);
   padding: 8px 0;
+}
+
+@keyframes age-reveal {
+  0% {
+    transform: translateY(-6px);
+    box-shadow: 0 0 0 rgba(163, 71, 42, 0);
+  }
+
+  45% {
+    transform: translateY(0);
+    box-shadow: 0 0 0 6px rgba(163, 71, 42, 0.12), var(--shadow);
+  }
+
+  100% {
+    transform: translateY(0);
+    box-shadow: var(--shadow);
+  }
+}
+
+@keyframes choice-enter {
+  from {
+    transform: translateY(-4px);
+    opacity: 0.7;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes number-pop {
+  0% {
+    transform: scale(0.94);
+  }
+
+  55% {
+    transform: scale(1.08);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 @media (min-width: 800px) {

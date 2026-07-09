@@ -18,9 +18,19 @@ function TraitCard({ card, actionLabel, onAction, disabled, subtle = false }) {
   const keywords = card.keywords || [];
   const tags = card.tags || [card.color].filter(Boolean);
   const colorClass = card.color ? ` color-pill--${card.color.toLowerCase()}` : "";
+  const classNames = [
+    "trait-card",
+    subtle ? "trait-card--subtle" : "",
+    keywords.includes("Dominant") ? "trait-card--dominant" : "",
+    keywords.includes("Late") ? "trait-card--late" : "",
+    card.status?.poisoned ? "trait-card--poisoned" : "",
+    card.parasiteOwnerName ? "trait-card--parasite" : ""
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
-    <article className={`trait-card${subtle ? " trait-card--subtle" : ""}`}>
+    <article className={classNames}>
       <div className="trait-card__top">
         <span className="trait-card__emoji" aria-hidden="true">
           {card.emoji}
@@ -114,6 +124,90 @@ function LogPanel({ log }) {
             ))
         ) : (
           <p className="empty-state">No actions yet.</p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function choiceActionLabel(choice) {
+  if (choice.type === "faceDownHand") {
+    return choice.mode === "discard" ? "Discard This" : "Take This";
+  }
+
+  if (choice.type === "giveHandCard") {
+    return "Give This";
+  }
+
+  if (choice.type === "publicTrait") {
+    return choice.mode === "steal" ? "Steal This" : "Destroy This";
+  }
+
+  if (choice.type === "discardCard") {
+    return choice.mode === "play" ? "Play This" : "Take This";
+  }
+
+  if (choice.type === "targetPlayer") {
+    return "Choose";
+  }
+
+  return "Choose";
+}
+
+function PendingChoicePanel({ choice, onResolve }) {
+  if (!choice) {
+    return null;
+  }
+
+  if (!choice.isChooser) {
+    return (
+      <section className="panel choice-panel choice-panel--waiting">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Choice Pending</p>
+            <h2>{choice.actorName} is choosing</h2>
+            <p>{choice.isTarget ? "Your hidden cards are involved." : choice.prompt}</p>
+          </div>
+          <span className="meta-pill">Paused</span>
+        </div>
+      </section>
+    );
+  }
+
+  const actionLabel = choiceActionLabel(choice);
+
+  return (
+    <section className="panel choice-panel">
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">Resolve Effect</p>
+          <h2>{choice.prompt}</h2>
+          {choice.type === "faceDownHand" ? (
+            <p>Pick one hidden slot. The card text stays secret until the effect resolves.</p>
+          ) : null}
+        </div>
+        <span className="meta-pill">{choice.sourceCardName}</span>
+      </div>
+      <div className={choice.type === "faceDownHand" || choice.type === "targetPlayer" ? "choice-grid" : "hand-grid"}>
+        {choice.choices.map((option, index) =>
+          option.card ? (
+            <TraitCard
+              key={option.id}
+              card={option.card}
+              actionLabel={option.ownerName ? `${actionLabel} from ${option.ownerName}` : actionLabel}
+              onAction={() => onResolve(choice.id, option.id)}
+            />
+          ) : (
+            <button
+              key={option.id}
+              className={`choice-tile${choice.type === "faceDownHand" ? " choice-tile--facedown" : ""}`}
+              type="button"
+              onClick={() => onResolve(choice.id, option.id)}
+            >
+              <span>{option.label || `Option ${index + 1}`}</span>
+              <strong>{choice.type === "faceDownHand" ? index + 1 : actionLabel}</strong>
+            </button>
+          )
         )}
       </div>
     </section>
@@ -312,6 +406,22 @@ function App() {
     }
   }
 
+  async function passLateWindow() {
+    const response = await emitAction("passLate");
+
+    if (!response.ok) {
+      setError(response.message || "Could not pass the Late window.");
+    }
+  }
+
+  async function resolvePendingChoice(choiceId, optionId) {
+    const response = await emitAction("resolveChoice", { choiceId, optionId });
+
+    if (!response.ok) {
+      setError(response.message || "Could not resolve that choice.");
+    }
+  }
+
   async function discardFromHand(cardInstanceId) {
     const response = await emitAction("discardCard", { cardInstanceId });
 
@@ -332,16 +442,36 @@ function App() {
 
   const canSkip =
     roomState?.isYourTurn &&
+    !roomState?.pendingChoice &&
     !roomState?.pendingDiscard &&
     roomState?.turnState &&
     !roomState.turnState.primaryActionTaken;
 
+  const isLateWindow = Boolean(roomState?.turnState?.lateWindow);
+  const canPassLate = roomState?.isYourTurn && isLateWindow && !roomState?.pendingChoice && !roomState?.pendingDiscard;
+  const isWaitingForChoice = Boolean(roomState?.pendingChoice);
+  const canPlayTraitCard = (card) => {
+    if (!roomState?.isYourTurn || roomState.pendingDiscard || roomState.pendingChoice) {
+      return false;
+    }
+
+    if (isLateWindow) {
+      return Boolean(card.keywords?.includes("Late"));
+    }
+
+    return true;
+  };
+
   const extraTurnText =
-    roomState?.isYourTurn && roomState?.turnState?.playsRemaining > 1
-      ? `${roomState.turnState.playsRemaining} plays left this turn`
-      : roomState?.isYourTurn && roomState?.turnState?.playsRemaining === 1
-        ? "1 play left this turn"
-        : "";
+    roomState?.isYourTurn && isLateWindow
+      ? "Late window"
+      : roomState?.isYourTurn && isWaitingForChoice
+        ? "Choice pending"
+        : roomState?.isYourTurn && roomState?.turnState?.playsRemaining > 1
+          ? `${roomState.turnState.playsRemaining} plays left this turn`
+          : roomState?.isYourTurn && roomState?.turnState?.playsRemaining === 1
+            ? "1 play left this turn"
+            : "";
 
   if (!roomState) {
     return (
@@ -473,7 +603,7 @@ function App() {
   if (isPlaying) {
     return (
       <main className="app-shell">
-        <section className="panel panel--hero">
+        <section key={roomState.currentAge?.id || "age"} className="panel panel--hero age-panel">
           <div className="section-heading">
             <div>
               <p className="eyebrow">
@@ -495,19 +625,29 @@ function App() {
             <strong>{roomState.isYourTurn ? "Your turn" : `${roomState.currentPlayerName}'s turn`}</strong>
             {extraTurnText ? <span className="meta-pill">{extraTurnText}</span> : null}
             {roomState.pendingDiscard ? <span className="meta-pill">{roomState.pendingDiscard.reason}</span> : null}
+            {roomState.pendingChoice ? <span className="meta-pill">Resolving {roomState.pendingChoice.sourceCardName}</span> : null}
           </div>
 
           <div className="action-row">
-            <button className="secondary-button" type="button" onClick={skipCurrentTurn} disabled={!canSkip}>
-              Skip and Draw 2
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={canPassLate ? passLateWindow : skipCurrentTurn}
+              disabled={canPassLate ? false : !canSkip}
+            >
+              {canPassLate ? "Pass Late" : "Skip and Draw 2"}
             </button>
             <span className="muted-text">
-              Dominant Traits resist stealing and destruction. Poison resolves when the Age stabilizes.
+              {isLateWindow
+                ? "Play a Late Trait now, or pass so the next player can act."
+                : "Dominant Traits resist stealing and destruction. Poison resolves when the Age stabilizes."}
             </span>
           </div>
 
           {error ? <p className="error-text">{error}</p> : null}
         </section>
+
+        <PendingChoicePanel choice={roomState.pendingChoice} onResolve={resolvePendingChoice} />
 
         <section className="panel">
           <div className="section-heading">
@@ -532,7 +672,7 @@ function App() {
                   disabled={
                     roomState.pendingDiscard
                       ? !roomState.isYourTurn
-                      : !roomState.isYourTurn || Boolean(roomState.pendingDiscard)
+                      : !canPlayTraitCard(card)
                   }
                 />
               ))

@@ -110,9 +110,11 @@ function createRoom(code, hostId, hostName) {
     phase: "lobby",
     turnState: null,
     pendingDiscard: null,
+    pendingChoice: null,
     finalScores: null,
     log: [],
     nextLogId: 1,
+    nextChoiceId: 1,
     lastPlayedTrait: null,
     revealedHands: {},
     lockedBonuses: {}
@@ -166,6 +168,10 @@ function isDominant(card) {
 
 function isParasite(card) {
   return Boolean(card?.keywords?.includes("Parasite") || card?.immediateEffect?.type === "placeParasite");
+}
+
+function isLate(card) {
+  return Boolean(card?.keywords?.includes("Late"));
 }
 
 function isPoisonImmune(card) {
@@ -420,6 +426,56 @@ function selectTraitEntry(room, players, fallback = "lowestPointNonDominantTrait
   return [...entries].sort((a, b) => cardScoreForHost(a.card) - cardScoreForHost(b.card))[0];
 }
 
+function eligibleTraitEntries(room, players, options = {}) {
+  const entries = nonDominantBoardEntries(room, players, Boolean(options.allowDominant));
+
+  if (options.filter === "playedThisAge" && room.lastPlayedTrait?.card?.instanceId) {
+    return entries.filter((entry) => entry.card.instanceId === room.lastPlayedTrait.card.instanceId);
+  }
+
+  return entries;
+}
+
+function choicePrompt(sourceCard, fallbackText) {
+  return `${sourceCard?.name || "Effect"}: ${fallbackText}`;
+}
+
+function queueChoice(room, choice, context = {}) {
+  const id = `choice-${room.nextChoiceId || 1}`;
+  room.nextChoiceId = (room.nextChoiceId || 1) + 1;
+  room.pendingChoice = {
+    id,
+    finishAfterChoice: context.finishAfterChoice || null,
+    context,
+    ...choice
+  };
+
+  if (room.turnState) {
+    room.turnState.awaitingChoice = true;
+  }
+
+  const actor = findPlayer(room, choice.playerId);
+  if (actor) {
+    addLog(room, `${actor.name} is choosing: ${choice.prompt}`);
+  }
+
+  return true;
+}
+
+function clearPendingChoice(room) {
+  room.pendingChoice = null;
+
+  if (room.turnState) {
+    room.turnState.awaitingChoice = false;
+  }
+}
+
+function assertNoPendingChoice(room) {
+  if (room.pendingChoice) {
+    throw new Error("Finish the pending choice first.");
+  }
+}
+
 function removeBoardEntry(room, entry, reason = "destroyed") {
   if (!entry) {
     return null;
@@ -446,15 +502,25 @@ function discardCardsFor(room, playerId) {
   return room.discardPile.filter((card) => (card.ownerId || card.originalOwnerId || card.discardedById) === playerId);
 }
 
-function selectDiscardCard(room, actor, params = {}) {
+function discardOwnerId(card) {
+  return card.ownerId || card.originalOwnerId || card.discardedById || null;
+}
+
+function discardCardEntries(room, actor, params = {}) {
   const owner = params.owner || params.fromOwner || "self";
   let cards = room.discardPile.map((card, index) => ({ card, index }));
 
   if (owner === "self") {
-    cards = cards.filter(({ card }) => (card.ownerId || card.originalOwnerId || card.discardedById) === actor.id);
+    cards = cards.filter(({ card }) => discardOwnerId(card) === actor.id);
   } else if (owner === "opponent") {
-    cards = cards.filter(({ card }) => (card.ownerId || card.originalOwnerId || card.discardedById) !== actor.id);
+    cards = cards.filter(({ card }) => discardOwnerId(card) !== actor.id);
   }
+
+  return cards;
+}
+
+function selectDiscardCard(room, actor, params = {}) {
+  const cards = discardCardEntries(room, actor, params);
 
   if (!cards.length) {
     return null;
@@ -463,7 +529,38 @@ function selectDiscardCard(room, actor, params = {}) {
   return cards[cards.length - 1];
 }
 
-function reviveOrPlayDiscard(room, actor, sourceCard, params = {}, mode = "revive") {
+function queueDiscardChoice(room, actor, sourceCard, params = {}, mode = "revive", context = {}) {
+  const entries = discardCardEntries(room, actor, params);
+
+  if (!entries.length) {
+    addLog(room, `${sourceCard.name} found no card in the discard pile.`);
+    return false;
+  }
+
+  return queueChoice(
+    room,
+    {
+      type: "discardCard",
+      mode,
+      playerId: actor.id,
+      actorId: actor.id,
+      sourceCard,
+      params,
+      prompt: choicePrompt(
+        sourceCard,
+        `${mode === "play" ? "play" : params.toZone === "hand" ? "return" : "revive"} a card from the discard pile`
+      ),
+      choices: entries.map(({ card, index }) => ({
+        id: card.instanceId,
+        discardIndex: index,
+        cardInstanceId: card.instanceId
+      }))
+    },
+    context
+  );
+}
+
+function reviveOrPlayDiscard(room, actor, sourceCard, params = {}, mode = "revive", context = {}) {
   if (params.mode === "bounce") {
     const entry = selectTraitEntry(room, room.players, params.fallback || "mostRecentTrait");
 
@@ -477,6 +574,10 @@ function reviveOrPlayDiscard(room, actor, sourceCard, params = {}, mode = "reviv
     owner.hand.push(card);
     addLog(room, `${sourceCard.name} returned ${card.name} to ${owner.name}'s hand.`);
     return;
+  }
+
+  if (context.finishAfterChoice) {
+    return queueDiscardChoice(room, actor, sourceCard, params, mode, context);
   }
 
   const selected = selectDiscardCard(room, actor, params);
@@ -501,6 +602,379 @@ function reviveOrPlayDiscard(room, actor, sourceCard, params = {}, mode = "reviv
 
   actor.board.push(card);
   addLog(room, `${actor.name} ${mode === "play" ? "played" : "revived"} ${card.name} from the discard pile.`);
+}
+
+function shuffleHandChoices(target) {
+  return shuffle(
+    target.hand.map((card) => ({
+      id: card.instanceId,
+      cardInstanceId: card.instanceId,
+      targetId: target.id
+    }))
+  );
+}
+
+function queueFaceDownHandChoice(room, actor, target, sourceCard, params = {}, mode = "steal", context = {}) {
+  if (!target?.hand.length) {
+    return false;
+  }
+
+  return queueChoice(
+    room,
+    {
+      type: "faceDownHand",
+      mode,
+      playerId: actor.id,
+      actorId: actor.id,
+      targetId: target.id,
+      targetName: target.name,
+      sourceCard,
+      params,
+      prompt: choicePrompt(
+        sourceCard,
+        `${mode === "discard" ? "discard" : "take"} one face-down card from ${target.name}`
+      ),
+      choices: shuffleHandChoices(target)
+    },
+    context
+  );
+}
+
+function queueHandTargetSequence(room, actor, targets, sourceCard, params = {}, mode = "steal", context = {}) {
+  const targetIds = [];
+
+  targets.forEach((target) => {
+    const count = Math.max(1, resolveCount(room, target, params.count, 1));
+
+    for (let index = 0; index < count; index += 1) {
+      targetIds.push(target.id);
+    }
+  });
+
+  while (targetIds.length) {
+    const target = findPlayer(room, targetIds.shift());
+
+    if (!target?.hand.length) {
+      continue;
+    }
+
+    return queueChoice(
+      room,
+      {
+        type: "faceDownHand",
+        mode,
+        playerId: actor.id,
+        actorId: actor.id,
+        targetId: target.id,
+        targetName: target.name,
+        remainingTargets: targetIds,
+        sourceCard,
+        params,
+        prompt: choicePrompt(
+          sourceCard,
+          `${mode === "discard" ? "discard" : "take"} one face-down card from ${target.name}`
+        ),
+        choices: shuffleHandChoices(target)
+      },
+      context
+    );
+  }
+
+  return false;
+}
+
+function queueGiveHandCardChoice(room, actor, target, sourceCard, params = {}, context = {}) {
+  if (!actor?.hand.length || !target) {
+    return false;
+  }
+
+  return queueChoice(
+    room,
+    {
+      type: "giveHandCard",
+      mode: "give",
+      playerId: actor.id,
+      actorId: actor.id,
+      targetId: target.id,
+      targetName: target.name,
+      sourceCard,
+      params,
+      prompt: choicePrompt(sourceCard, `give 1 card to ${target.name}`),
+      choices: actor.hand.map((card) => ({
+        id: card.instanceId,
+        cardInstanceId: card.instanceId
+      }))
+    },
+    context
+  );
+}
+
+function publicTraitChoiceEntries(room, actor, params = {}) {
+  const targets = targetPlayers(room, actor, params.target || "nextOpponent");
+  return eligibleTraitEntries(room, targets, {
+    allowDominant: Boolean(params.allowDominant),
+    filter: params.filter
+  });
+}
+
+function queuePublicTraitChoice(room, actor, sourceCard, params = {}, mode = "destroy", context = {}) {
+  const entries = publicTraitChoiceEntries(room, actor, params);
+
+  if (!entries.length) {
+    return false;
+  }
+
+  return queueChoice(
+    room,
+    {
+      type: "publicTrait",
+      mode,
+      playerId: actor.id,
+      actorId: actor.id,
+      sourceCard,
+      params,
+      remainingCount: Math.max(1, Number(params.count || 1)),
+      prompt: choicePrompt(sourceCard, `${mode === "steal" ? "steal" : "destroy"} a public Trait`),
+      choices: entries.map((entry) => ({
+        id: entry.card.instanceId,
+        ownerId: entry.player.id,
+        cardInstanceId: entry.card.instanceId
+      }))
+    },
+    context
+  );
+}
+
+function queueParasiteTargetChoice(room, actor, card, context = {}) {
+  const params = card.immediateEffect?.params || {};
+  const choices = room.players
+    .filter((player) => player.id !== actor.id)
+    .map((player) => ({
+      id: player.id,
+      playerId: player.id,
+      label: player.name
+    }));
+
+  if (!choices.length) {
+    actor.board.push(card);
+    addLog(room, `${actor.name} played ${card.name}.`);
+    return false;
+  }
+
+  return queueChoice(
+    room,
+    {
+      type: "targetPlayer",
+      mode: "placeParasite",
+      playerId: actor.id,
+      actorId: actor.id,
+      sourceCard: card,
+      heldCard: card,
+      params,
+      prompt: choicePrompt(card, "choose which Gene Pool receives this Parasite"),
+      choices
+    },
+    context
+  );
+}
+
+function findBoardChoiceEntry(room, choice, option) {
+  const owner = findPlayer(room, option.ownerId);
+
+  if (!owner) {
+    return null;
+  }
+
+  const index = owner.board.findIndex((card) => card.instanceId === option.cardInstanceId);
+  if (index === -1) {
+    return null;
+  }
+
+  const card = owner.board[index];
+  if (isDominant(card) && !choice.params?.allowDominant) {
+    return null;
+  }
+
+  return { player: owner, card, index };
+}
+
+function applyDiscardChoice(room, choice, option, actor) {
+  const index = room.discardPile.findIndex((card) => card.instanceId === option.cardInstanceId);
+
+  if (index === -1) {
+    return false;
+  }
+
+  const [card] = room.discardPile.splice(index, 1);
+  card.ownerId = actor.id;
+  card.status = {};
+  card.parasiteOwnerId = null;
+  card.parasiteValue = null;
+
+  if (choice.params?.toZone === "hand") {
+    actor.hand.push(card);
+    addLog(room, `${actor.name} returned ${card.name} from the discard pile to hand.`, actor.id);
+    addLog(room, `${actor.name} returned a card from the discard pile to hand.`);
+    return false;
+  }
+
+  actor.board.push(card);
+  addLog(room, `${actor.name} ${choice.mode === "play" ? "played" : "revived"} ${card.name} from the discard pile.`);
+  return false;
+}
+
+function nextHandTargetChoice(room, choice, actor) {
+  const remainingTargets = [...(choice.remainingTargets || [])];
+
+  while (remainingTargets.length) {
+    const targetId = remainingTargets.shift();
+    const target = findPlayer(room, targetId);
+
+    if (!target?.hand.length) {
+      continue;
+    }
+
+    return {
+      ...choice,
+      targetId: target.id,
+      targetName: target.name,
+      remainingTargets,
+      prompt: choicePrompt(
+        choice.sourceCard,
+        `${choice.mode === "discard" ? "discard" : "take"} one face-down card from ${target.name}`
+      ),
+      choices: shuffleHandChoices(target)
+    };
+  }
+
+  return false;
+}
+
+function applyFaceDownHandChoice(room, choice, option, actor) {
+  const target = findPlayer(room, choice.targetId);
+
+  if (!target) {
+    return false;
+  }
+
+  const index = target.hand.findIndex((card) => card.instanceId === option.cardInstanceId);
+
+  if (index === -1) {
+    return false;
+  }
+
+  const [card] = target.hand.splice(index, 1);
+
+  if (choice.mode === "discard") {
+    addToDiscard(room, card, target.id);
+    addLog(room, `${choice.sourceCard.name} made ${target.name} discard ${card.name}.`, target.id);
+    addLog(room, `${choice.sourceCard.name} made ${target.name} discard a card.`);
+    return nextHandTargetChoice(room, choice, actor);
+  }
+
+  card.ownerId = actor.id;
+  actor.hand.push(card);
+  addLog(room, `${actor.name} stole ${card.name} from ${target.name}.`, actor.id);
+  addLog(room, `${actor.name} stole ${card.name} from you.`, target.id);
+  addLog(room, `${actor.name} stole a face-down card from ${target.name}.`);
+
+  if (Number(choice.params?.giveBack || 0) > 0) {
+    return {
+      type: "giveHandCard",
+      mode: "give",
+      playerId: actor.id,
+      actorId: actor.id,
+      targetId: target.id,
+      targetName: target.name,
+      remainingTargets: choice.remainingTargets || [],
+      sourceCard: choice.sourceCard,
+      params: choice.params,
+      prompt: choicePrompt(choice.sourceCard, `give 1 card to ${target.name}`),
+      choices: actor.hand.map((candidate) => ({
+        id: candidate.instanceId,
+        cardInstanceId: candidate.instanceId
+      }))
+    };
+  }
+
+  return nextHandTargetChoice(room, choice, actor);
+}
+
+function applyGiveHandCardChoice(room, choice, option, actor) {
+  const target = findPlayer(room, choice.targetId);
+
+  if (!target) {
+    return false;
+  }
+
+  const index = actor.hand.findIndex((card) => card.instanceId === option.cardInstanceId);
+
+  if (index === -1) {
+    return false;
+  }
+
+  const [card] = actor.hand.splice(index, 1);
+  card.ownerId = target.id;
+  target.hand.push(card);
+  addLog(room, `${actor.name} gave ${target.name} a card.`, actor.id);
+  addLog(room, `${actor.name} gave you ${card.name}.`, target.id);
+  return nextHandTargetChoice(room, choice, actor);
+}
+
+function applyPublicTraitChoice(room, choice, option, actor) {
+  const entry = findBoardChoiceEntry(room, choice, option);
+
+  if (!entry) {
+    return false;
+  }
+
+  if (choice.mode === "steal") {
+    const [stolen] = entry.player.board.splice(entry.index, 1);
+    stolen.ownerId = actor.id;
+    actor.board.push(stolen);
+    addLog(room, `${actor.name} stole ${stolen.name} from ${entry.player.name}'s Gene Pool.`);
+  } else {
+    removeBoardEntry(room, entry, "destroyed");
+  }
+
+  const remainingCount = Number(choice.remainingCount || 1) - 1;
+
+  if (remainingCount <= 0) {
+    return false;
+  }
+
+  const nextChoice = {
+    ...choice,
+    remainingCount
+  };
+  nextChoice.choices = publicTraitChoiceEntries(room, actor, choice.params).map((nextEntry) => ({
+    id: nextEntry.card.instanceId,
+    ownerId: nextEntry.player.id,
+    cardInstanceId: nextEntry.card.instanceId
+  }));
+
+  return nextChoice.choices.length ? nextChoice : false;
+}
+
+function applyTargetPlayerChoice(room, choice, option, actor) {
+  if (choice.mode !== "placeParasite") {
+    return false;
+  }
+
+  const target = findPlayer(room, option.playerId);
+  const card = choice.heldCard || choice.sourceCard;
+
+  if (!target || !card) {
+    return false;
+  }
+
+  card.ownerId = actor.id;
+  card.originalOwnerId ||= actor.id;
+  card.parasiteOwnerId = actor.id;
+  card.parasiteValue = Number(choice.params?.value ?? card.points ?? -1);
+  target.board.push(card);
+  addLog(room, `${actor.name} placed ${card.name} into ${target.name}'s Gene Pool.`);
+  return false;
 }
 
 function revealHand(room, actor, sourceCard, target) {
@@ -572,13 +1046,15 @@ function applyStabilize(room) {
 
 function applyThen(room, actor, sourceCard, params, context) {
   if (params?.then) {
-    applyEffect(room, actor, params.then, sourceCard, context);
+    return applyEffect(room, actor, params.then, sourceCard, context);
   }
+
+  return false;
 }
 
 function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, context = {}) {
   if (!effect || !actor) {
-    return;
+    return false;
   }
 
   const params = effect.params || {};
@@ -607,11 +1083,21 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
         }
       }
 
-      applyThen(room, actor, sourceCard, params, context);
-      break;
+      return applyThen(room, actor, sourceCard, params, context);
     }
 
     case "discardRandomOpponent": {
+      if (context.finishAfterChoice && params.pick !== "highest") {
+        const targets = targetPlayers(room, actor, params.target || "nextOpponent");
+        const pending = queueHandTargetSequence(room, actor, targets, sourceCard, params, "discard", context);
+
+        if (pending) {
+          return true;
+        }
+
+        return applyThen(room, actor, sourceCard, params, context);
+      }
+
       targetPlayers(room, actor, params.target || "nextOpponent").forEach((target) => {
         const count = resolveCount(room, target, params.count, 1);
 
@@ -625,12 +1111,31 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
         }
       });
 
-      applyThen(room, actor, sourceCard, params, context);
-      break;
+      return applyThen(room, actor, sourceCard, params, context);
     }
 
     case "stealRandom": {
       const targets = targetPlayers(room, actor, params.target || "nextOpponent");
+
+      if (context.finishAfterChoice && params.zone === "pool") {
+        const pending = queuePublicTraitChoice(room, actor, sourceCard, params, "steal", context);
+
+        if (pending) {
+          return true;
+        }
+
+        return applyThen(room, actor, sourceCard, params, context);
+      }
+
+      if (context.finishAfterChoice && params.zone !== "pool") {
+        const pending = queueHandTargetSequence(room, actor, targets, sourceCard, params, "steal", context);
+
+        if (pending) {
+          return true;
+        }
+
+        return applyThen(room, actor, sourceCard, params, context);
+      }
 
       targets.forEach((target) => {
         if (params.zone === "pool") {
@@ -658,11 +1163,18 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
         }
       });
 
-      applyThen(room, actor, sourceCard, params, context);
-      break;
+      return applyThen(room, actor, sourceCard, params, context);
     }
 
     case "stealChosenPublicTrait": {
+      if (context.finishAfterChoice) {
+        const pending = queuePublicTraitChoice(room, actor, sourceCard, params, "steal", context);
+
+        if (pending) {
+          return true;
+        }
+      }
+
       const target = targetPlayers(room, actor, params.target || "opponentHighestGenePoolPoints")[0];
       const entry = target ? selectTraitEntry(room, [target], params.fallback || "highestPointNonDominantTrait") : null;
 
@@ -676,6 +1188,14 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
     }
 
     case "destroyOpponentTrait": {
+      if (context.finishAfterChoice) {
+        const pending = queuePublicTraitChoice(room, actor, sourceCard, params, "destroy", context);
+
+        if (pending) {
+          return true;
+        }
+      }
+
       const target = targetPlayers(room, actor, params.target || "nextOpponent")[0];
       const entry = target ? selectTraitEntry(room, [target], params.fallback || "lowestPointNonDominantTrait") : null;
       removeBoardEntry(room, entry, "destroyed");
@@ -685,8 +1205,7 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
     case "destroyOwnTrait": {
       const entry = selectTraitEntry(room, [actor], params.fallback || "lowestPointNonDominantTrait");
       removeBoardEntry(room, entry, "destroyed");
-      applyThen(room, actor, sourceCard, params, context);
-      break;
+      return applyThen(room, actor, sourceCard, params, context);
     }
 
     case "poison":
@@ -694,47 +1213,46 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
       const target = targetPlayers(room, actor, params.target || "nextOpponent")[0] || actor;
       const entry = selectTraitEntry(room, [target], params.fallback || "randomNonDominantTrait");
       poisonTrait(room, entry, effect.type === "delayedPoison" ? Number(params.turns || 2) : 1);
-      applyThen(room, actor, sourceCard, params, context);
-      break;
+      return applyThen(room, actor, sourceCard, params, context);
     }
 
     case "playExtra": {
       if (room.turnState) {
         const count = resolveCount(room, actor, params.count, 1);
         room.turnState.playsRemaining = Math.min(room.turnState.playsRemaining + count, MAX_TRAIT_PLAYS_PER_TURN);
+        if (room.turnState.lateWindow && (params.fullTurn || isLate(sourceCard))) {
+          room.turnState.lateWindow = false;
+        }
         addLog(room, `${actor.name} may play ${count} extra Trait${count === 1 ? "" : "s"} this turn.`);
       }
       break;
     }
 
     case "reviveFromDiscard":
-      reviveOrPlayDiscard(room, actor, sourceCard, params, "revived");
-      applyThen(room, actor, sourceCard, params, context);
-      break;
+      if (reviveOrPlayDiscard(room, actor, sourceCard, params, "revived", context)) {
+        return true;
+      }
+      return applyThen(room, actor, sourceCard, params, context);
 
     case "playFromDiscard":
-      reviveOrPlayDiscard(room, actor, sourceCard, params, "play");
-      break;
+      return Boolean(reviveOrPlayDiscard(room, actor, sourceCard, params, "play", context));
 
     case "revealHandFullText": {
       targetPlayers(room, actor, params.target || "nextOpponent").forEach((target) => revealHand(room, actor, sourceCard, target));
-      applyThen(room, actor, sourceCard, params, context);
-      break;
+      return applyThen(room, actor, sourceCard, params, context);
     }
 
     case "reverseTurnOrder":
       room.turnOrder = currentTurnOrder(room).reverse();
       addLog(room, `${sourceCard.name} reversed turn order.`);
-      applyThen(room, actor, sourceCard, params, context);
-      break;
+      return applyThen(room, actor, sourceCard, params, context);
 
     case "skipNextPlayer": {
       targetPlayers(room, actor, params.target || "nextOpponent").forEach((target) => {
         target.hasActedThisAge = true;
         addLog(room, `${sourceCard.name} skipped ${target.name}'s next action this Age.`);
       });
-      applyThen(room, actor, sourceCard, params, context);
-      break;
+      return applyThen(room, actor, sourceCard, params, context);
     }
 
     case "swapHands": {
@@ -810,16 +1328,22 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
       addLog(room, `${sourceCard.name} has an effect that is not implemented yet.`);
       break;
   }
+
+  return false;
 }
 
-function placeParasiteCard(room, actor, card) {
+function placeParasiteCard(room, actor, card, context = {}) {
+  if (context.finishAfterChoice) {
+    return queueParasiteTargetChoice(room, actor, card, context);
+  }
+
   const params = card.immediateEffect?.params || {};
   const target = targetPlayers(room, actor, params.target || "opponentHighestGenePoolPoints")[0];
 
   if (!target) {
     actor.board.push(card);
     addLog(room, `${actor.name} played ${card.name}.`);
-    return;
+    return false;
   }
 
   card.ownerId = actor.id;
@@ -828,6 +1352,7 @@ function placeParasiteCard(room, actor, card) {
   card.parasiteValue = Number(params.value ?? card.points ?? -1);
   target.board.push(card);
   addLog(room, `${actor.name} placed ${card.name} into ${target.name}'s Gene Pool.`);
+  return false;
 }
 
 function applyAgeEffect(room) {
@@ -1110,10 +1635,12 @@ function startGame(room, playerId) {
   room.playersActedThisAge = [];
   room.turnState = null;
   room.pendingDiscard = null;
+  room.pendingChoice = null;
   room.finalScores = null;
   room.lastPlayedTrait = null;
   room.revealedHands = {};
   room.lockedBonuses = {};
+  room.nextChoiceId = 1;
 
   room.players.forEach((player) => {
     player.hand = [];
@@ -1143,36 +1670,18 @@ function requireCurrentTurn(room, playerId) {
   return player;
 }
 
-function playCard(room, playerId, cardInstanceId) {
-  const player = requireCurrentTurn(room, playerId);
-
-  if (!room.turnState || room.turnState.playsRemaining <= 0) {
-    throw new Error("You cannot play another Trait this turn.");
+function canPlayInCurrentWindow(room, card) {
+  if (!room.turnState?.lateWindow) {
+    return true;
   }
 
-  const cardIndex = player.hand.findIndex((card) => card.instanceId === cardInstanceId);
+  return isLate(card);
+}
 
-  if (cardIndex === -1) {
-    throw new Error("That card is not in your hand.");
+function completeAfterPlay(room, player) {
+  if (!player || room.phase !== "playing") {
+    return;
   }
-
-  const [card] = player.hand.splice(cardIndex, 1);
-  const previousTrait = room.lastPlayedTrait?.card || null;
-  card.ownerId = player.id;
-  card.originalOwnerId ||= player.id;
-
-  if (isParasite(card)) {
-    placeParasiteCard(room, player, card);
-  } else {
-    player.board.push(card);
-    addLog(room, `${player.name} played ${card.name}.`);
-    applyEffect(room, player, card.immediateEffect, card, { previousTrait });
-  }
-
-  room.lastPlayedTrait = { card, playerId: player.id };
-  room.turnState.primaryActionTaken = true;
-  room.turnState.playsTaken += 1;
-  room.turnState.playsRemaining -= 1;
 
   if (!player.flags.noDrawThisAge) {
     const drawn = drawToHandSize(room, player);
@@ -1184,13 +1693,80 @@ function playCard(room, playerId, cardInstanceId) {
 
   autoDiscardToLimit(room, player);
 
-  if (room.turnState.playsRemaining <= 0) {
+  if (room.pendingChoice) {
+    return;
+  }
+
+  if (room.turnState?.playsRemaining <= 0) {
+    if (!room.turnState.lateWindow && player.hand.some(isLate)) {
+      room.turnState.lateWindow = true;
+      room.turnState.playsRemaining = 1;
+      addLog(room, `${player.name} may play a Late Trait or pass.`);
+      return;
+    }
+
     endTurn(room);
   }
 }
 
+function playCard(room, playerId, cardInstanceId) {
+  const player = requireCurrentTurn(room, playerId);
+  assertNoPendingChoice(room);
+
+  if (!room.turnState || room.turnState.playsRemaining <= 0) {
+    throw new Error("You cannot play another Trait this turn.");
+  }
+
+  const cardIndex = player.hand.findIndex((card) => card.instanceId === cardInstanceId);
+
+  if (cardIndex === -1) {
+    throw new Error("That card is not in your hand.");
+  }
+
+  const card = player.hand[cardIndex];
+
+  if (!canPlayInCurrentWindow(room, card)) {
+    throw new Error("Only Late Traits can be played right now.");
+  }
+
+  player.hand.splice(cardIndex, 1);
+  const previousTrait = room.lastPlayedTrait?.card || null;
+  card.ownerId = player.id;
+  card.originalOwnerId ||= player.id;
+  room.turnState.primaryActionTaken = true;
+  room.turnState.playsTaken += 1;
+  room.turnState.playsRemaining -= 1;
+
+  let isWaitingForChoice = false;
+
+  if (isParasite(card)) {
+    isWaitingForChoice = placeParasiteCard(room, player, card, { finishAfterChoice: "play" });
+  } else {
+    player.board.push(card);
+    addLog(room, `${player.name} played ${card.name}.`);
+    isWaitingForChoice = applyEffect(room, player, card.immediateEffect, card, {
+      previousTrait,
+      finishAfterChoice: "play"
+    });
+  }
+
+  room.lastPlayedTrait = { card, playerId: player.id };
+
+  if (isWaitingForChoice) {
+    return;
+  }
+
+  completeAfterPlay(room, player);
+}
+
 function skipTurn(room, playerId) {
   const player = requireCurrentTurn(room, playerId);
+  assertNoPendingChoice(room);
+
+  if (room.turnState?.lateWindow) {
+    passLate(room, playerId);
+    return;
+  }
 
   if (room.turnState?.primaryActionTaken) {
     throw new Error("You already took an action this turn.");
@@ -1207,8 +1783,87 @@ function skipTurn(room, playerId) {
   endTurn(room);
 }
 
+function passLate(room, playerId) {
+  const player = requireCurrentTurn(room, playerId);
+  assertNoPendingChoice(room);
+
+  if (!room.turnState?.lateWindow) {
+    throw new Error("There is no Late window to pass.");
+  }
+
+  addLog(room, `${player.name} passed the Late window.`);
+  room.turnState.playsRemaining = 0;
+  endTurn(room);
+}
+
+function resolveChoice(room, playerId, choiceId, optionId) {
+  const choice = room.pendingChoice;
+
+  if (!choice) {
+    throw new Error("There is no pending choice.");
+  }
+
+  if (choice.id !== choiceId) {
+    throw new Error("That choice is no longer active.");
+  }
+
+  if (choice.playerId !== playerId) {
+    throw new Error("That choice belongs to another player.");
+  }
+
+  const actor = requirePlayer(room, choice.actorId);
+  const option = choice.choices.find((candidate) => candidate.id === optionId);
+
+  if (!option) {
+    throw new Error("That option is not available.");
+  }
+
+  clearPendingChoice(room);
+
+  let followup = false;
+
+  switch (choice.type) {
+    case "discardCard":
+      followup = applyDiscardChoice(room, choice, option, actor);
+      break;
+    case "faceDownHand":
+      followup = applyFaceDownHandChoice(room, choice, option, actor);
+      break;
+    case "giveHandCard":
+      followup = applyGiveHandCardChoice(room, choice, option, actor);
+      break;
+    case "publicTrait":
+      followup = applyPublicTraitChoice(room, choice, option, actor);
+      break;
+    case "targetPlayer":
+      followup = applyTargetPlayerChoice(room, choice, option, actor);
+      break;
+    default:
+      throw new Error("That choice type is not implemented.");
+  }
+
+  if (followup) {
+    queueChoice(room, followup, { finishAfterChoice: choice.finishAfterChoice });
+    return;
+  }
+
+  const pendingThen = applyThen(room, actor, choice.sourceCard, choice.params, {
+    ...(choice.context || {}),
+    finishAfterChoice: choice.finishAfterChoice
+  });
+
+  if (pendingThen) {
+    return;
+  }
+
+  if (choice.finishAfterChoice === "play") {
+    completeAfterPlay(room, actor);
+  }
+}
+
 function discardCard(room, playerId, cardInstanceId) {
   const player = requireCurrentTurn(room, playerId);
+  assertNoPendingChoice(room);
 
   if (!room.pendingDiscard || room.pendingDiscard.playerId !== playerId) {
     throw new Error("No discard is required right now.");
@@ -1404,6 +2059,7 @@ function finishGame(room) {
   room.phase = "gameOver";
   room.turnState = null;
   room.pendingDiscard = null;
+  room.pendingChoice = null;
   room.finalScores = scores;
   addLog(room, `The game ended. ${scores.filter((score) => score.isWinner).map((score) => score.name).join(", ")} won.`);
 }
@@ -1422,10 +2078,12 @@ function newGame(room, playerId) {
   room.turnOrder = room.players.map((player) => player.id);
   room.turnState = null;
   room.pendingDiscard = null;
+  room.pendingChoice = null;
   room.finalScores = null;
   room.lastPlayedTrait = null;
   room.revealedHands = {};
   room.lockedBonuses = {};
+  room.nextChoiceId = 1;
 
   room.players.forEach((player) => {
     player.hand = [];
@@ -1517,6 +2175,88 @@ function sanitizePlayer(room, player, viewerId) {
   };
 }
 
+function decorateChoiceOption(room, choice, option, viewerId) {
+  if (choice.type === "faceDownHand") {
+    return {
+      id: option.id,
+      label: "Face-down card"
+    };
+  }
+
+  if (choice.type === "targetPlayer") {
+    return {
+      id: option.id,
+      label: option.label
+    };
+  }
+
+  if (choice.type === "discardCard") {
+    const card = room.discardPile.find((candidate) => candidate.instanceId === option.cardInstanceId);
+    return card
+      ? {
+          id: option.id,
+          card: decorateCard(room, card)
+        }
+      : null;
+  }
+
+  if (choice.type === "giveHandCard") {
+    const actor = findPlayer(room, choice.actorId);
+    const card = actor?.hand.find((candidate) => candidate.instanceId === option.cardInstanceId);
+    return card
+      ? {
+          id: option.id,
+          card: decorateCard(room, card)
+        }
+      : null;
+  }
+
+  if (choice.type === "publicTrait") {
+    const owner = findPlayer(room, option.ownerId);
+    const card = owner?.board.find((candidate) => candidate.instanceId === option.cardInstanceId);
+    return card
+      ? {
+          id: option.id,
+          ownerId: owner.id,
+          ownerName: owner.name,
+          card: decorateCard(room, card)
+        }
+      : null;
+  }
+
+  return viewerId === choice.playerId ? { id: option.id, label: option.label || "Choose" } : null;
+}
+
+function sanitizePendingChoice(room, viewerId) {
+  const choice = room.pendingChoice;
+
+  if (!choice) {
+    return null;
+  }
+
+  const actor = findPlayer(room, choice.actorId);
+  const isChooser = choice.playerId === viewerId;
+  const isTarget = choice.targetId === viewerId;
+
+  return {
+    id: choice.id,
+    type: choice.type,
+    mode: choice.mode,
+    prompt: choice.prompt,
+    sourceCardName: choice.sourceCard?.name || "Effect",
+    sourceCard: choice.sourceCard ? decorateCard(room, choice.sourceCard) : null,
+    actorId: choice.actorId,
+    actorName: actor?.name || "",
+    targetId: choice.targetId || null,
+    targetName: choice.targetName || "",
+    isChooser,
+    isTarget,
+    choices: isChooser
+      ? choice.choices.map((option) => decorateChoiceOption(room, choice, option, viewerId)).filter(Boolean)
+      : []
+  };
+}
+
 function sanitizeRoomForPlayer(room, playerId) {
   const viewer = findPlayer(room, playerId);
   const current = currentPlayer(room);
@@ -1540,6 +2280,7 @@ function sanitizeRoomForPlayer(room, playerId) {
     discardPileCount: room.discardPile.length,
     discardPile: room.discardPile.slice(-20).reverse().map((card) => decorateCard(room, card)),
     pendingDiscard: room.pendingDiscard?.playerId === playerId ? room.pendingDiscard : null,
+    pendingChoice: sanitizePendingChoice(room, playerId),
     turnState: room.turnState,
     finalScores: room.finalScores,
     connected: Boolean(viewer)
@@ -1551,8 +2292,10 @@ module.exports = {
   discardCard,
   joinRoom,
   newGame,
+  passLate,
   playCard,
   removePlayerFromRoom,
+  resolveChoice,
   sanitizeRoomForPlayer,
   skipTurn,
   startGame

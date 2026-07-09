@@ -9,8 +9,10 @@ const {
   discardCard,
   joinRoom,
   newGame,
+  passLate,
   playCard,
   removePlayerFromRoom,
+  resolveChoice,
   sanitizeRoomForPlayer,
   skipTurn,
   startGame
@@ -235,6 +237,24 @@ io.on("connection", (socket) => {
     handleAction(socket, ack, () => {
       const room = requireRoomForSocket(socket);
       skipTurn(room, socket.id);
+      emitRoomState(room);
+      return {};
+    });
+  });
+
+  socket.on("passLate", (_payload = {}, ack) => {
+    handleAction(socket, ack, () => {
+      const room = requireRoomForSocket(socket);
+      passLate(room, socket.id);
+      emitRoomState(room);
+      return {};
+    });
+  });
+
+  socket.on("resolveChoice", (payload = {}, ack) => {
+    handleAction(socket, ack, () => {
+      const room = requireRoomForSocket(socket);
+      resolveChoice(room, socket.id, payload.choiceId, payload.optionId);
       emitRoomState(room);
       return {};
     });
