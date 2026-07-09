@@ -74,16 +74,17 @@ function PlayerBoard({ player, isCurrent, isMe }) {
             {isMe ? " (You)" : ""}
           </h3>
           <p>
-            {player.handCount} card{player.handCount === 1 ? "" : "s"} in hand
+            Hand {player.handCount}/{player.handLimit || player.genePoolSize || 5}
           </p>
         </div>
         <div className="board-panel__stats">
           {player.isHost ? <span className="meta-pill">Host</span> : null}
           {player.hasActedThisAge ? <span className="meta-pill">Acted</span> : null}
-          <span className="meta-pill">Gene Pool {player.currentBoardPoints}</span>
+          <span className="meta-pill">Gene Pool {player.genePoolSize || 5}</span>
+          <span className="meta-pill">Trait Points {player.currentBoardPoints}</span>
         </div>
       </div>
-      <h4>Gene Pool</h4>
+      <h4>Trait Row</h4>
       <div className="board-traits">
         {player.board.length ? (
           player.board.map((card) => <TraitCard key={card.instanceId} card={card} subtle />)
@@ -235,7 +236,7 @@ function ScoreBreakdown({ finalScores, isHost, onNewGame }) {
               <div>
                 <h3>{entry.name}</h3>
                 <p>
-                  Base {entry.baseScore}, Bonus {entry.bonusTotal}
+                  Trait {entry.baseScore}, Bonus {entry.bonusTotal}
                 </p>
               </div>
               <strong>{entry.total}</strong>
@@ -481,7 +482,7 @@ function App() {
             <p className="eyebrow">Local Multiplayer Evolution Game</p>
             <h1>Critterfall</h1>
             <p className="lede">
-              Build a public Gene Pool, steal questionable organs, poison rivals, survive randomized Ages,
+              Grow your Gene Pool, build a public Trait Row, steal questionable organs, poison rivals, survive randomized Ages,
               then see whose weird little creature scores the most before the world goes quiet.
             </p>
           </div>
@@ -522,10 +523,10 @@ function App() {
         <section className="info-grid">
           <article className="panel">
             <h3>How It Works</h3>
-            <p>Create a room, share the room code or invite link, then build public Gene Pools across randomized Ages.</p>
+            <p>Create a room, share the room code or invite link, then build public Trait Rows across randomized Ages.</p>
           </article>
           <article className="panel">
-            <h3>Public Gene Pools</h3>
+            <h3>Public Trait Rows</h3>
             <p>Played Traits are public with full text, color, keywords, poison, Dominant, and Parasite status.</p>
           </article>
           <article className="panel">
@@ -653,7 +654,7 @@ function App() {
           <div className="section-heading">
             <div>
               <h2>Your Hand</h2>
-              <p>Play one Trait, then draw back up toward 5 cards.</p>
+              <p>Play one Trait, then draw back up toward your Gene Pool.</p>
             </div>
             <span className="meta-pill">
               {hand.length} card{hand.length === 1 ? "" : "s"}

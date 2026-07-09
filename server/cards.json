@@ -59,7 +59,7 @@
       "color": "Body",
       "points": 1,
       "keywords": [],
-      "text": "Your hand size limit is +3. End: +1 for every 3 cards in hand.",
+      "text": "Your Gene Pool is +3 while this is in your Trait Row. End: +1 for every 3 cards in hand.",
       "immediateEffect": null,
       "endEffect": {
         "type": "scoreIfCondition",
@@ -243,7 +243,7 @@
       "color": "Body",
       "points": 0,
       "keywords": [],
-      "text": "End: +2 if this is at the far left or far right of your Gene Pool.",
+      "text": "End: +2 if this is at the far left or far right of your Trait Row.",
       "immediateEffect": null,
       "endEffect": {
         "type": "scoreIfCondition",
@@ -433,8 +433,13 @@
       "color": "Body",
       "points": 2,
       "keywords": [],
-      "text": "End: +1 for each OTHER Body Trait you control.",
-      "immediateEffect": null,
+      "text": "Immediate: increase your Gene Pool by 1. End: +1 for each OTHER Body Trait you control.",
+      "immediateEffect": {
+        "type": "modifyGenePool",
+        "params": {
+          "amount": 1
+        }
+      },
       "endEffect": {
         "type": "scoreIfCondition",
         "params": {
@@ -444,7 +449,7 @@
       },
       "passiveEffect": null,
       "quantity": 1,
-      "designNotes": "Your requested 'increase gene pool' card."
+      "designNotes": "Gene Pool ramp plus Body-tribal payoff."
     },
     {
       "id": "t022",
@@ -453,18 +458,23 @@
       "color": "Body",
       "points": 4,
       "keywords": [],
-      "text": "Immediate: draw 1. High points, no defense.",
+      "text": "Immediate: increase your Gene Pool by 2, then draw 2. High points, no defense.",
       "immediateEffect": {
-        "type": "draw",
+        "type": "modifyGenePool",
         "params": {
-          "count": 1,
-          "fallback": "self"
+          "amount": 2,
+          "then": {
+            "type": "draw",
+            "params": {
+              "count": 2
+            }
+          }
         }
       },
       "endEffect": null,
       "passiveEffect": null,
       "quantity": 1,
-      "designNotes": "Clean fat-points target for thieves."
+      "designNotes": "Explosive Gene Pool ramp; intentionally vulnerable to removal."
     },
     {
       "id": "t023",
@@ -547,7 +557,7 @@
       "color": "Predatory",
       "points": 1,
       "keywords": [],
-      "text": "Immediate: destroy the lowest-point non-Dominant Trait of the opponent with the most Gene Pool points.",
+      "text": "Immediate: destroy the lowest-point non-Dominant Trait of the opponent with the most Trait points.",
       "immediateEffect": {
         "type": "destroyOpponentTrait",
         "params": {
@@ -587,7 +597,7 @@
       "color": "Predatory",
       "points": 1,
       "keywords": [],
-      "text": "Immediate: steal a chosen non-Dominant Trait from a public Gene Pool.",
+      "text": "Immediate: steal a chosen non-Dominant Trait from a public Trait Row.",
       "immediateEffect": {
         "type": "stealChosenPublicTrait",
         "params": {
@@ -906,19 +916,25 @@
       "color": "Predatory",
       "points": 0,
       "keywords": [],
-      "text": "Immediate: destroy the two lowest-point non-Dominant Traits of the point leader.",
+      "text": "Immediate: decrease the point leader's Gene Pool by 1, then destroy one of their non-Dominant Traits.",
       "immediateEffect": {
-        "type": "destroyOpponentTrait",
+        "type": "modifyGenePool",
         "params": {
-          "count": 2,
-          "fallback": "lowestPointNonDominantTrait",
-          "target": "opponentHighestGenePoolPoints"
+          "target": "opponentHighestGenePoolPoints",
+          "amount": -1,
+          "then": {
+            "type": "destroyOpponentTrait",
+            "params": {
+              "fallback": "lowestPointNonDominantTrait",
+              "target": "opponentHighestGenePoolPoints"
+            }
+          }
         }
       },
       "endEffect": null,
       "passiveEffect": null,
       "quantity": 1,
-      "designNotes": "Requested 'decrease gene pool' card; heavy tempo, 0 pts."
+      "designNotes": "Capacity attack plus Trait destruction; directly targets the hand-size Gene Pool system."
     },
     {
       "id": "t045",
@@ -1075,19 +1091,24 @@
       "color": "Social",
       "points": 0,
       "keywords": [],
-      "text": "Immediate: draw 1 for every 2 Social Traits you already control (max 3).",
+      "text": "Immediate: increase your Gene Pool by 1 for every 2 Social Traits you control, max +3; then draw 1.",
       "immediateEffect": {
-        "type": "draw",
+        "type": "modifyGenePool",
         "params": {
-          "count": "socialCount2",
+          "amount": "socialCount2",
           "max": 3,
-          "fallback": "self"
+          "then": {
+            "type": "draw",
+            "params": {
+              "count": 1
+            }
+          }
         }
       },
       "endEffect": null,
       "passiveEffect": null,
       "quantity": 1,
-      "designNotes": "Scales with a built board."
+      "designNotes": "Swarm-style Gene Pool ramp."
     },
     {
       "id": "t053",
@@ -1117,7 +1138,7 @@
       "color": "Social",
       "points": 2,
       "keywords": [],
-      "text": "End: +1 per Social Trait across ALL Gene Pools, max +5.",
+      "text": "End: +1 per Social Trait across ALL Trait Rows, max +5.",
       "immediateEffect": null,
       "endEffect": {
         "type": "scoreForUniqueColors",
@@ -1160,7 +1181,7 @@
       "keywords": [
         "Parasite"
       ],
-      "text": "Parasite. Place into an opponent's Gene Pool. Its owner scores it as -2.",
+      "text": "Parasite. Place into an opponent's Trait Row. Its owner scores it as -2.",
       "immediateEffect": {
         "type": "placeParasite",
         "params": {
@@ -1296,7 +1317,7 @@
       "color": "Social",
       "points": 0,
       "keywords": [],
-      "text": "End: if you have the MOST Gene Pool points, +5. If not, -2. 'Why not 100%?'",
+      "text": "End: if you have the MOST Trait points, +5. If not, -2. 'Why not 100%?'",
       "immediateEffect": null,
       "endEffect": {
         "type": "scoreIfCondition",
@@ -1608,7 +1629,7 @@
       "color": "Weird",
       "points": 1,
       "keywords": [],
-      "text": "Immediate: copy any non-Dominant Trait in play into your Gene Pool (a token copy, 0 points).",
+      "text": "Immediate: copy any non-Dominant Trait in play into your Trait Row (a token copy, 0 points).",
       "immediateEffect": {
         "type": "copyTrait",
         "params": {
@@ -1728,7 +1749,7 @@
       "color": "Weird",
       "points": 1,
       "keywords": [],
-      "text": "Immediate: revive any Trait from any discard pile into your Gene Pool.",
+      "text": "Immediate: revive any Trait from any discard pile into your Trait Row.",
       "immediateEffect": {
         "type": "reviveFromDiscard",
         "params": {
@@ -2031,7 +2052,7 @@
       "keywords": [
         "Dominant"
       ],
-      "text": "Dominant. Cannot be destroyed, stolen, or swapped. End: +6.",
+      "text": "Dominant. Your Gene Pool cannot be decreased. Cannot be destroyed, stolen, or swapped. End: +6.",
       "immediateEffect": null,
       "endEffect": {
         "type": "scoreIfCondition",
@@ -2040,9 +2061,12 @@
           "amount": 6
         }
       },
-      "passiveEffect": null,
+      "passiveEffect": {
+        "type": "genePoolProtection",
+        "params": {}
+      },
       "quantity": 1,
-      "designNotes": "Duplicate hole emoji flagged; net +3 locked points, no board impact."
+      "designNotes": "Locked defensive anchor for Gene Pool attack decks."
     },
     {
       "id": "t098",
@@ -2182,7 +2206,7 @@
       "color": "Weird",
       "points": 1,
       "keywords": [],
-      "text": "End: +5 if you have the FEWEST Gene Pool points (excluding this).",
+      "text": "End: +5 if you have the FEWEST Trait points (excluding this).",
       "immediateEffect": null,
       "endEffect": {
         "type": "scoreForLowPoints",
@@ -2201,7 +2225,7 @@
       "color": "Weird",
       "points": 2,
       "keywords": [],
-      "text": "End: +2 for each of the 4 colors present in your Gene Pool.",
+      "text": "End: +2 for each of the 4 colors present in your Trait Row.",
       "immediateEffect": null,
       "endEffect": {
         "type": "scoreForUniqueColors",
@@ -2391,7 +2415,7 @@
       "color": "Weird",
       "points": 0,
       "keywords": [],
-      "text": "Immediate: revive an opponent's discarded Trait into your Gene Pool.",
+      "text": "Immediate: revive an opponent's discarded Trait into your Trait Row.",
       "immediateEffect": {
         "type": "reviveFromDiscard",
         "params": {
@@ -2732,7 +2756,7 @@
       "id": "a004",
       "name": "Toxic Bloom",
       "emoji": "☣️",
-      "text": "All non-Dominant Traits at the edges of each Gene Pool are poisoned.",
+      "text": "All non-Dominant Traits at the edges of each Trait Row are poisoned.",
       "effect": {
         "type": "poison",
         "params": {

@@ -1,7 +1,9 @@
 const { AGE_CARDS, TRAIT_CARDS } = require("./cards");
 
 const STARTING_HAND_SIZE = 5;
-const BASE_HAND_LIMIT = 5;
+const STARTING_GENE_POOL_SIZE = 5;
+const MIN_GENE_POOL_SIZE = 1;
+const MAX_GENE_POOL_SIZE = 12;
 const MAX_TRAIT_PLAYS_PER_TURN = 3;
 const MIN_PLAYERS = 2;
 const MAX_PLAYERS = 6;
@@ -86,6 +88,7 @@ function createPlayer(id, name, isHost = false) {
     name: cleanName(name),
     hand: [],
     board: [],
+    genePoolSize: STARTING_GENE_POOL_SIZE,
     skippedTurns: 0,
     flags: {},
     isHost,
@@ -202,17 +205,46 @@ function boardPoints(player) {
   return player.board.reduce((total, card) => total + cardScoreForHost(card), 0);
 }
 
-function handLimitFor(player) {
-  return (
-    BASE_HAND_LIMIT +
-    player.board.reduce((total, card) => {
-      if (card.passiveEffect?.type !== "handLimitMod") {
-        return total;
-      }
+function clampGenePoolSize(value) {
+  return Math.max(MIN_GENE_POOL_SIZE, Math.min(MAX_GENE_POOL_SIZE, Number(value) || STARTING_GENE_POOL_SIZE));
+}
 
-      return total + Number(card.passiveEffect.params?.amount || 0);
-    }, 0)
+function handLimitFor(player) {
+  return clampGenePoolSize(
+    Number(player.genePoolSize || STARTING_GENE_POOL_SIZE) +
+      player.board.reduce((total, card) => {
+        if (card.passiveEffect?.type !== "handLimitMod") {
+          return total;
+        }
+
+        return total + Number(card.passiveEffect.params?.amount || 0);
+      }, 0)
   );
+}
+
+function modifyGenePoolSize(room, player, amount, sourceName = "Effect") {
+  if (!player || !amount) {
+    return 0;
+  }
+
+  if (amount < 0 && player.board.some((card) => card.passiveEffect?.type === "genePoolProtection")) {
+    addLog(room, `${player.name}'s Gene Pool resisted ${sourceName}.`);
+    return 0;
+  }
+
+  const previous = Number(player.genePoolSize || STARTING_GENE_POOL_SIZE);
+  const next = clampGenePoolSize(previous + amount);
+  player.genePoolSize = next;
+  const delta = next - previous;
+
+  if (delta > 0) {
+    addLog(room, `${sourceName} increased ${player.name}'s Gene Pool to ${next}.`);
+  } else if (delta < 0) {
+    addLog(room, `${sourceName} decreased ${player.name}'s Gene Pool to ${next}.`);
+  }
+
+  autoDiscardToLimit(room, player);
+  return delta;
 }
 
 function addToDiscard(room, card, discardedById = null) {
@@ -253,7 +285,7 @@ function drawCard(room, player, count = 1) {
 }
 
 function drawToHandSize(room, player) {
-  const targetSize = Math.min(STARTING_HAND_SIZE, handLimitFor(player));
+  const targetSize = handLimitFor(player);
   const needed = Math.max(0, targetSize - player.hand.length);
 
   if (!needed) {
@@ -426,6 +458,30 @@ function selectTraitEntry(room, players, fallback = "lowestPointNonDominantTrait
   return [...entries].sort((a, b) => cardScoreForHost(a.card) - cardScoreForHost(b.card))[0];
 }
 
+function findDestroyBlocker(player, targetCard, destroyAttempt) {
+  return player.board.find((card) => {
+    if (card.instanceId === targetCard.instanceId || card.passiveEffect?.type !== "shieldLikeBlock") {
+      return false;
+    }
+
+    const scope = card.passiveEffect.params?.scope || "firstDestroy";
+    return scope === "secondDestroy" ? destroyAttempt >= 2 : true;
+  });
+}
+
+function consumeDestroyBlocker(room, player, blocker, targetCard) {
+  const index = player.board.findIndex((card) => card.instanceId === blocker.instanceId);
+
+  if (index === -1) {
+    return false;
+  }
+
+  const [removed] = player.board.splice(index, 1);
+  addToDiscard(room, removed, removed.ownerId || player.id);
+  addLog(room, `${removed.name} blocked ${targetCard.name} from being destroyed, then was discarded.`);
+  return true;
+}
+
 function eligibleTraitEntries(room, players, options = {}) {
   const entries = nonDominantBoardEntries(room, players, Boolean(options.allowDominant));
 
@@ -476,12 +532,24 @@ function assertNoPendingChoice(room) {
   }
 }
 
-function removeBoardEntry(room, entry, reason = "destroyed") {
+function removeBoardEntry(room, entry, reason = "destroyed", options = {}) {
   if (!entry) {
     return null;
   }
 
-  const [card] = entry.player.board.splice(entry.index, 1);
+  if (!options.bypassShield && /destroy|wipe|poison|age/i.test(reason)) {
+    const destroyAttempt = Number(entry.player.flags.destroyAttempts || 0) + 1;
+    entry.player.flags.destroyAttempts = destroyAttempt;
+    const blocker = findDestroyBlocker(entry.player, entry.card, destroyAttempt);
+
+    if (blocker && consumeDestroyBlocker(room, entry.player, blocker, entry.card)) {
+      return null;
+    }
+  }
+
+  const currentIndex = entry.player.board.findIndex((card) => card.instanceId === entry.card.instanceId);
+  const removeIndex = currentIndex === -1 ? entry.index : currentIndex;
+  const [card] = entry.player.board.splice(removeIndex, 1);
 
   if (!card) {
     return null;
@@ -495,6 +563,7 @@ function removeBoardEntry(room, entry, reason = "destroyed") {
   }
 
   addLog(room, `${entry.player.name}'s ${card.name} was ${reason}.`);
+  autoDiscardToLimit(room, entry.player);
   return card;
 }
 
@@ -771,7 +840,7 @@ function queueParasiteTargetChoice(room, actor, card, context = {}) {
       sourceCard: card,
       heldCard: card,
       params,
-      prompt: choicePrompt(card, "choose which Gene Pool receives this Parasite"),
+      prompt: choicePrompt(card, "choose which Trait Row receives this Parasite"),
       choices
     },
     context
@@ -932,7 +1001,8 @@ function applyPublicTraitChoice(room, choice, option, actor) {
     const [stolen] = entry.player.board.splice(entry.index, 1);
     stolen.ownerId = actor.id;
     actor.board.push(stolen);
-    addLog(room, `${actor.name} stole ${stolen.name} from ${entry.player.name}'s Gene Pool.`);
+    addLog(room, `${actor.name} stole ${stolen.name} from ${entry.player.name}'s Trait Row.`);
+    autoDiscardToLimit(room, entry.player);
   } else {
     removeBoardEntry(room, entry, "destroyed");
   }
@@ -973,7 +1043,7 @@ function applyTargetPlayerChoice(room, choice, option, actor) {
   card.parasiteOwnerId = actor.id;
   card.parasiteValue = Number(choice.params?.value ?? card.points ?? -1);
   target.board.push(card);
-  addLog(room, `${actor.name} placed ${card.name} into ${target.name}'s Gene Pool.`);
+  addLog(room, `${actor.name} placed ${card.name} into ${target.name}'s Trait Row.`);
   return false;
 }
 
@@ -1071,6 +1141,22 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
       break;
     }
 
+    case "modifyGenePool": {
+      const targets = targetPlayers(room, actor, params.target || "self");
+
+      targets.forEach((target) => {
+        let baseAmount =
+          typeof params.amount === "string" ? resolveCount(room, target, params.amount, 1) : Number(params.amount || 0);
+        if (params.max != null) {
+          baseAmount = Math.min(baseAmount, Number(params.max));
+        }
+        const amount = params.direction === "decrease" ? -Math.abs(baseAmount) : baseAmount;
+        modifyGenePoolSize(room, target, amount, sourceCard.name);
+      });
+
+      return applyThen(room, actor, sourceCard, params, context);
+    }
+
     case "discardSelf": {
       const count = resolveCount(room, actor, params.count, 1);
 
@@ -1148,7 +1234,8 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
           const [stolen] = target.board.splice(entry.index, 1);
           stolen.ownerId = actor.id;
           actor.board.push(stolen);
-          addLog(room, `${actor.name} stole ${stolen.name} from ${target.name}'s Gene Pool.`);
+          addLog(room, `${actor.name} stole ${stolen.name} from ${target.name}'s Trait Row.`);
+          autoDiscardToLimit(room, target);
           return;
         }
 
@@ -1182,7 +1269,8 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
         const [stolen] = entry.player.board.splice(entry.index, 1);
         stolen.ownerId = actor.id;
         actor.board.push(stolen);
-        addLog(room, `${actor.name} stole ${stolen.name} from ${entry.player.name}'s Gene Pool.`);
+        addLog(room, `${actor.name} stole ${stolen.name} from ${entry.player.name}'s Trait Row.`);
+        autoDiscardToLimit(room, entry.player);
       }
       break;
     }
@@ -1199,7 +1287,7 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
       const target = targetPlayers(room, actor, params.target || "nextOpponent")[0];
       const entry = target ? selectTraitEntry(room, [target], params.fallback || "lowestPointNonDominantTrait") : null;
       removeBoardEntry(room, entry, "destroyed");
-      break;
+      return applyThen(room, actor, sourceCard, params, context);
     }
 
     case "destroyOwnTrait": {
@@ -1318,7 +1406,7 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
           copy.ownerId = actor.id;
           copy.originalOwnerId = actor.id;
           actor.board.push(copy);
-          addLog(room, `${actor.name} copied ${entry.card.name} into their Gene Pool.`);
+          addLog(room, `${actor.name} copied ${entry.card.name} into their Trait Row.`);
         }
       }
       break;
@@ -1351,7 +1439,7 @@ function placeParasiteCard(room, actor, card, context = {}) {
   card.parasiteOwnerId = actor.id;
   card.parasiteValue = Number(params.value ?? card.points ?? -1);
   target.board.push(card);
-  addLog(room, `${actor.name} placed ${card.name} into ${target.name}'s Gene Pool.`);
+  addLog(room, `${actor.name} placed ${card.name} into ${target.name}'s Trait Row.`);
   return false;
 }
 
@@ -1645,6 +1733,7 @@ function startGame(room, playerId) {
   room.players.forEach((player) => {
     player.hand = [];
     player.board = [];
+    player.genePoolSize = STARTING_GENE_POOL_SIZE;
     player.skippedTurns = 0;
     player.flags = {};
     player.hasActedThisAge = false;
@@ -1687,7 +1776,7 @@ function completeAfterPlay(room, player) {
     const drawn = drawToHandSize(room, player);
 
     if (drawn) {
-      addLog(room, `${player.name} drew back up toward ${STARTING_HAND_SIZE}.`, player.id);
+      addLog(room, `${player.name} drew back up toward their Gene Pool (${handLimitFor(player)}).`, player.id);
     }
   }
 
@@ -1999,7 +2088,7 @@ function scoreEndEffect(room, player, card, effect, baseScores) {
   if (effect.type === "scoreForLowPoints") {
     const lowest = Math.min(...Object.values(baseScores));
     const points = baseScores[player.id] === lowest ? Number(params.amount || 0) : 0;
-    return points ? { points, text: `${card.name}: +${points} for lowest Gene Pool points` } : null;
+    return points ? { points, text: `${card.name}: +${points} for lowest Trait points` } : null;
   }
 
   if (effect.type === "scoreForOpponentParasites") {
@@ -2022,7 +2111,7 @@ function finishGame(room) {
 
   const baseScores = Object.fromEntries(room.players.map((player) => [player.id, boardPoints(player)]));
   const scores = room.players.map((player) => {
-    const breakdown = [`Gene Pool: ${baseScores[player.id]}`];
+    const breakdown = [`Trait points: ${baseScores[player.id]}`];
     let bonusTotal = Number(room.lockedBonuses[player.id] || 0);
 
     if (bonusTotal) {
@@ -2088,6 +2177,7 @@ function newGame(room, playerId) {
   room.players.forEach((player) => {
     player.hand = [];
     player.board = [];
+    player.genePoolSize = STARTING_GENE_POOL_SIZE;
     player.skippedTurns = 0;
     player.flags = {};
     player.isHost = player.id === room.hostId;
@@ -2168,6 +2258,8 @@ function sanitizePlayer(room, player, viewerId) {
     hand: isViewer || isRevealed ? player.hand.map((card) => decorateCard(room, card)) : [],
     isHandRevealed: isRevealed,
     handCount: player.hand.length,
+    genePoolSize: Number(player.genePoolSize || STARTING_GENE_POOL_SIZE),
+    handLimit: handLimitFor(player),
     board: player.board.map((card) => decorateCard(room, card)),
     shield: 0,
     hasActedThisAge: player.hasActedThisAge,
