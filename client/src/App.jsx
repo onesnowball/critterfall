@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { SERVER_URL, socket } from "./socket";
 
 const SAVED_NAME_KEY = "critterfall-player-name";
@@ -38,6 +38,87 @@ function colorKey(color) {
 function formatPoints(value) {
   const numericValue = Number(value || 0);
   return numericValue > 0 ? `+${numericValue}` : String(numericValue);
+}
+
+function useAnimatedNumber(value, duration = 650) {
+  const target = Number(value || 0);
+  const [display, setDisplay] = useState(target);
+  const fromRef = useRef(target);
+  const rafRef = useRef(null);
+
+  useEffect(() => {
+    const from = fromRef.current;
+
+    if (from === target) {
+      return undefined;
+    }
+
+    const start = performance.now();
+
+    const tick = (now) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplay(Math.round(from + (target - from) * eased));
+
+      if (t < 1) {
+        rafRef.current = requestAnimationFrame(tick);
+      } else {
+        fromRef.current = target;
+      }
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [target, duration]);
+
+  return display;
+}
+
+function ScorePop({ value, max = 30 }) {
+  const numeric = Number(value || 0);
+  const display = useAnimatedNumber(numeric);
+  const prevRef = useRef(numeric);
+  const [delta, setDelta] = useState(null);
+  const [bumping, setBumping] = useState(false);
+
+  useEffect(() => {
+    const change = numeric - prevRef.current;
+    prevRef.current = numeric;
+
+    if (change === 0) {
+      return undefined;
+    }
+
+    setDelta({ change, key: `${Date.now()}-${Math.random()}` });
+    setBumping(true);
+    const clearBump = setTimeout(() => setBumping(false), 460);
+    const clearDelta = setTimeout(() => setDelta(null), 1100);
+
+    return () => {
+      clearTimeout(clearBump);
+      clearTimeout(clearDelta);
+    };
+  }, [numeric]);
+
+  const pct = Math.max(0, Math.min(100, (numeric / max) * 100));
+
+  return (
+    <div className={`score-pop${bumping ? " score-pop--bump" : ""}`}>
+      <div className="score-pop__row">
+        <span className="score-pop__label">Points</span>
+        <span className="score-pop__value">{display}</span>
+        {delta ? (
+          <span key={delta.key} className={`score-pop__delta score-pop__delta--${delta.change > 0 ? "up" : "down"}`}>
+            {delta.change > 0 ? "+" : ""}
+            {delta.change}
+          </span>
+        ) : null}
+      </div>
+      <div className="score-pop__bar" aria-hidden="true">
+        <span className="score-pop__fill" style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
 }
 
 function ageRuleLabels(rules) {
@@ -158,17 +239,19 @@ function TraitCard({ card, actionLabel, onAction, disabled, subtle = false }) {
               title={
                 (att.protect || []).length
                   ? `Cannot be ${att.protect.join(" / ")}`
-                  : att.valueBonus
-                    ? `${att.valueBonus > 0 ? "+" : ""}${att.valueBonus} value`
-                    : att.name
+                  : att.isDynamicValue
+                    ? `Worth ${att.effectiveValue} right now (changes with the game)`
+                    : att.effectiveValue
+                      ? `${att.effectiveValue > 0 ? "+" : ""}${att.effectiveValue} value`
+                      : att.name
               }
             >
               <span aria-hidden="true">{att.emoji}</span>
               {att.name}
-              {att.valueBonus ? (
+              {att.effectiveValue ? (
                 <strong>
-                  {att.valueBonus > 0 ? "+" : ""}
-                  {att.valueBonus}
+                  {att.isDynamicValue ? "~" : att.effectiveValue > 0 ? "+" : ""}
+                  {att.effectiveValue}
                 </strong>
               ) : null}
             </span>
@@ -184,9 +267,19 @@ function TraitCard({ card, actionLabel, onAction, disabled, subtle = false }) {
   );
 }
 
-function PlayerBoard({ player, isCurrent, isMe }) {
+function PlayerBoard({ player, isCurrent, isMe, dimmed = false }) {
+  const classNames = [
+    "panel",
+    "board-panel",
+    isCurrent ? "board-panel--current" : "",
+    dimmed ? "board-panel--waiting" : ""
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <section className={`panel board-panel${isCurrent ? " board-panel--current" : ""}`}>
+    <section className={classNames}>
+      {isCurrent ? <span className="turn-flag">▶ Playing</span> : null}
       <div className="board-panel__header">
         <div>
           <h3>
@@ -201,7 +294,7 @@ function PlayerBoard({ player, isCurrent, isMe }) {
           {player.isHost ? <span className="meta-pill">Host</span> : null}
           {player.hasActedThisAge ? <span className="meta-pill">Acted</span> : null}
           <span className="meta-pill">Gene Pool {player.genePoolSize || 5}</span>
-          <span className="meta-pill">Trait Points {player.currentBoardPoints}</span>
+          <ScorePop value={player.currentBoardPoints} />
         </div>
       </div>
       <h4>Trait Row</h4>
@@ -266,6 +359,10 @@ function choiceActionLabel(choice) {
 
   if (choice.type === "ageRansom") {
     return choice.mode === "discard" ? "Discard This" : "Choose";
+  }
+
+  if (choice.type === "peekPlay") {
+    return "Take & Play";
   }
 
   if (choice.type === "publicTrait") {
@@ -1246,8 +1343,17 @@ function App() {
             </div>
           </div>
 
-          <div className="turn-banner">
-            <strong>{roomState.isYourTurn ? "Your turn" : `${roomState.currentPlayerName}'s turn`}</strong>
+          <div
+            key={roomState.currentPlayerId}
+            className={`turn-banner${roomState.isYourTurn ? " turn-banner--you" : " turn-banner--waiting"}`}
+          >
+            <span className="turn-banner__pulse" aria-hidden="true" />
+            <span className="turn-banner__icon" aria-hidden="true">
+              {roomState.isYourTurn ? "🎯" : "⏳"}
+            </span>
+            <strong className="turn-banner__label">
+              {roomState.isYourTurn ? "Your turn!" : `${roomState.currentPlayerName}'s turn`}
+            </strong>
             {extraTurnText ? <span className="meta-pill">{extraTurnText}</span> : null}
             {roomState.pendingDiscard ? <span className="meta-pill">{roomState.pendingDiscard.reason}</span> : null}
             {roomState.pendingChoice ? <span className="meta-pill">Resolving {roomState.pendingChoice.sourceCardName}</span> : null}
@@ -1341,6 +1447,7 @@ function App() {
               player={player}
               isCurrent={player.id === roomState.currentPlayerId}
               isMe={player.id === roomState.youPlayerId}
+              dimmed={player.id !== roomState.currentPlayerId}
             />
           ))}
         </section>

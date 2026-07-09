@@ -994,12 +994,21 @@ function queueGiveHandCardChoice(room, actor, target, sourceCard, params = {}, c
 }
 
 function publicTraitChoiceEntries(room, actor, params = {}) {
-  const targets = targetPlayers(room, actor, params.target || "nextOpponent");
-  return eligibleTraitEntries(room, targets, {
+  const options = {
     allowDominant: Boolean(params.allowDominant),
     filter: params.filter,
     color: params.color
-  });
+  };
+  const targets = targetPlayers(room, actor, params.target || "nextOpponent");
+  let entries = eligibleTraitEntries(room, targets, options);
+
+  // If the designated opponent has nothing to hit, widen to any opponent so the
+  // effect does not silently fizzle (e.g. Wrecking Tail vs. an empty leader).
+  if (!entries.length && params.target !== "self" && params.target !== "allPlayers") {
+    entries = eligibleTraitEntries(room, targetPlayers(room, actor, "allOpponents"), options);
+  }
+
+  return entries;
 }
 
 function queuePublicTraitChoice(room, actor, sourceCard, params = {}, mode = "destroy", context = {}) {
@@ -1397,6 +1406,66 @@ function applyPublicTraitChoice(room, choice, option, actor) {
   return nextChoice.choices.length ? nextChoice : false;
 }
 
+function queuePeekPlayChoice(room, actor, target, sourceCard, params, seenIds, context) {
+  const ids = (seenIds || []).filter((id) => target.hand.some((card) => card.instanceId === id));
+
+  if (!ids.length) {
+    return false;
+  }
+
+  return queueChoice(
+    room,
+    {
+      type: "peekPlay",
+      playerId: actor.id,
+      actorId: actor.id,
+      targetId: target.id,
+      targetName: target.name,
+      sourceCard,
+      params,
+      prompt: choicePrompt(sourceCard, `look at ${ids.length} of ${target.name}'s cards and take one to play`),
+      choices: ids.map((id) => ({ id, cardInstanceId: id }))
+    },
+    context
+  );
+}
+
+function applyPeekPlayChoice(room, choice, option, actor) {
+  const target = findPlayer(room, choice.targetId);
+
+  if (!target) {
+    return false;
+  }
+
+  const index = target.hand.findIndex((card) => card.instanceId === option.cardInstanceId);
+
+  if (index === -1) {
+    return false;
+  }
+
+  const [stolen] = target.hand.splice(index, 1);
+  stolen.ownerId = actor.id;
+  addLog(room, `${actor.name} looked at ${target.name}'s cards and took ${stolen.name}.`, actor.id);
+  addLog(room, `${actor.name} took ${stolen.name} from your hand.`, target.id);
+  addLog(room, `${actor.name} peeked at ${target.name}'s hand and took a card.`);
+
+  if (choice.params?.playImmediately === false || isParasite(stolen)) {
+    actor.hand.push(stolen);
+    return false;
+  }
+
+  actor.board.push(stolen);
+  addLog(room, `${actor.name} immediately played ${stolen.name}.`);
+  // If the played card queues its own choice, it sets room.pendingChoice; we
+  // return false and let completeAfterPlay bail out on that pending choice.
+  applyEffect(room, actor, stolen.immediateEffect, stolen, {
+    finishAfterChoice: choice.finishAfterChoice,
+    effectDepth: 0
+  });
+  room.lastPlayedTrait = { card: stolen, playerId: actor.id };
+  return false;
+}
+
 function applyTargetPlayerChoice(room, choice, option, actor) {
   if (choice.mode !== "placeParasite") {
     return false;
@@ -1667,9 +1736,19 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
         }
       }
 
-      const target = targetPlayers(room, actor, params.target || "nextOpponent")[0];
-      const entry = target ? selectTraitEntry(room, [target], params.fallback || "lowestPointNonDominantTrait") : null;
-      removeBoardEntry(room, entry, "destroyed");
+      const fallback = params.fallback || "lowestPointNonDominantTrait";
+      let entry = selectTraitEntry(room, targetPlayers(room, actor, params.target || "nextOpponent"), fallback);
+
+      if (!entry && params.target !== "self" && params.target !== "allPlayers") {
+        entry = selectTraitEntry(room, targetPlayers(room, actor, "allOpponents"), fallback);
+      }
+
+      if (entry) {
+        removeBoardEntry(room, entry, "destroyed");
+      } else {
+        addLog(room, `${sourceCard.name} found no Trait to destroy.`);
+      }
+
       return applyThen(room, actor, sourceCard, params, context);
     }
 
@@ -1835,6 +1914,23 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
       const peek = Math.min(Number(params.peek || 2), target.hand.length);
       const shuffled = shuffle(target.hand.map((card, index) => ({ card, index })));
       const seen = shuffled.slice(0, peek);
+
+      if (context.finishAfterChoice && params.choose) {
+        const pending = queuePeekPlayChoice(
+          room,
+          actor,
+          target,
+          sourceCard,
+          params,
+          seen.map((entry) => entry.card.instanceId),
+          context
+        );
+
+        if (pending) {
+          return true;
+        }
+      }
+
       const chosen = seen.reduce((best, entry) => (printedPoints(entry.card) > printedPoints(best.card) ? entry : best), seen[0]);
       const handIndex = target.hand.findIndex((card) => card.instanceId === chosen.card.instanceId);
       const [stolen] = target.hand.splice(handIndex, 1);
@@ -2918,6 +3014,9 @@ function resolveChoice(room, playerId, choiceId, optionId) {
     case "publicTrait":
       followup = applyPublicTraitChoice(room, choice, option, actor);
       break;
+    case "peekPlay":
+      followup = applyPeekPlayChoice(room, choice, option, actor);
+      break;
     case "targetPlayer":
       followup = applyTargetPlayerChoice(room, choice, option, actor);
       break;
@@ -3331,15 +3430,23 @@ function decorateCard(room, card, boardOwner = null) {
     isDoubled: Number(card.pointMultiplier || 1) > 1,
     status: card.status || {},
     parasiteOwnerName: owner?.name || null,
-    attachments: attachments.map((att) => ({
-      instanceId: att.instanceId,
-      name: att.name,
-      emoji: att.emoji,
-      color: normalizeColor(att.colorOverride || att.color),
-      points: printedPoints(att),
-      protect: att.attachSpec?.protect || [],
-      valueBonus: Number(att.attachSpec?.valueBonus || 0)
-    }))
+    attachments: attachments.map((att) => {
+      const attDynamic = boardOwner ? dynamicTraitValue(boardOwner, att, room) : null;
+      const attBase = attDynamic != null ? attDynamic : printedPoints(att);
+      const bonus = Number(att.attachSpec?.valueBonus || 0);
+
+      return {
+        instanceId: att.instanceId,
+        name: att.name,
+        emoji: att.emoji,
+        color: normalizeColor(att.colorOverride || att.color),
+        points: printedPoints(att),
+        protect: att.attachSpec?.protect || [],
+        valueBonus: bonus,
+        effectiveValue: attBase + bonus,
+        isDynamicValue: attDynamic != null
+      };
+    })
   };
 }
 
@@ -3402,6 +3509,17 @@ function decorateChoiceOption(room, choice, option, viewerId) {
   if (choice.type === "handLimitDiscard") {
     const actor = findPlayer(room, choice.actorId);
     const card = actor?.hand.find((candidate) => candidate.instanceId === option.cardInstanceId);
+    return card
+      ? {
+          id: option.id,
+          card: decorateCard(room, card)
+        }
+      : null;
+  }
+
+  if (choice.type === "peekPlay") {
+    const target = findPlayer(room, choice.targetId);
+    const card = target?.hand.find((candidate) => candidate.instanceId === option.cardInstanceId);
     return card
       ? {
           id: option.id,

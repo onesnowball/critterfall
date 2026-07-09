@@ -3041,7 +3041,8 @@
         "params": {
           "target": "nextOpponent",
           "peek": 2,
-          "playImmediately": true
+          "playImmediately": true,
+          "choose": true
         }
       },
       "endEffect": null,
