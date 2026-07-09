@@ -2852,6 +2852,355 @@
       },
       "quantity": 1,
       "designNotes": "Same-color extra play enabler."
+    },
+    {
+      "id": "t137",
+      "name": "Palm Swap",
+      "emoji": "🤝",
+      "color": "Blue",
+      "points": 1,
+      "keywords": [],
+      "text": "Swap your entire hand with an opponent of your choice.",
+      "immediateEffect": {
+        "type": "swapHands",
+        "params": {
+          "target": "nextOpponent"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 2,
+      "designNotes": "Hand-swap tempo play."
+    },
+    {
+      "id": "t138",
+      "name": "Pocket Metabolism",
+      "emoji": "🫧",
+      "color": "Green",
+      "points": 3,
+      "keywords": [
+        "Dominant"
+      ],
+      "text": "Dominant. Your Gene Pool cannot be reduced by other players or Ages.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "genePoolProtection",
+        "params": {}
+      },
+      "quantity": 1,
+      "designNotes": "Dominant anchor that shields the Gene Pool."
+    },
+    {
+      "id": "t139",
+      "name": "Veto Reflex",
+      "emoji": "🛑",
+      "color": "Purple",
+      "points": 0,
+      "keywords": [
+        "Dominant"
+      ],
+      "text": "Dominant. The first time one of your Traits would be destroyed, block it instead; then this is destroyed.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "shieldLikeBlock",
+        "params": {
+          "scope": "firstDestroy",
+          "consumes": true
+        }
+      },
+      "quantity": 2,
+      "designNotes": "Zero-value guard that cancels the next destruction."
+    },
+    {
+      "id": "t140",
+      "name": "Keystone Beast",
+      "emoji": "🦣",
+      "color": "Green",
+      "points": 7,
+      "keywords": [],
+      "text": "You may only play this if you already have 3 or more Green Traits in your Row.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": null,
+      "playCondition": {
+        "minColorCount": {
+          "color": "Green",
+          "count": 3
+        }
+      },
+      "quantity": 2,
+      "designNotes": "High-value payoff for going wide on Green."
+    },
+    {
+      "id": "t141",
+      "name": "Tar Pit Salvage",
+      "emoji": "🕳️",
+      "color": "Purple",
+      "points": 2,
+      "keywords": [],
+      "text": "Play the top card of the discard pile into your Trait Row, ignoring its action.",
+      "immediateEffect": {
+        "type": "playTopDiscard",
+        "params": {}
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 2,
+      "designNotes": "Free body from the discard pile."
+    },
+    {
+      "id": "t142",
+      "name": "Population Bloom",
+      "emoji": "🌱",
+      "color": "Green",
+      "points": 0,
+      "keywords": [],
+      "text": "This Trait's value is equal to the size of your Gene Pool.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "dynamicValue",
+        "params": {
+          "basis": "genePoolSize",
+          "per": 1
+        }
+      },
+      "quantity": 2,
+      "designNotes": "Scales with your Gene Pool; rewards staying big."
+    },
+    {
+      "id": "t143",
+      "name": "Muddled Instinct",
+      "emoji": "😵‍💫",
+      "color": "Purple",
+      "points": -2,
+      "keywords": [],
+      "text": "Confusion. Worth -2, but draw a card when you play it.",
+      "immediateEffect": {
+        "type": "draw",
+        "params": {
+          "count": 1,
+          "target": "self"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 2,
+      "designNotes": "Negative body that cycles a card."
+    },
+    {
+      "id": "t144",
+      "name": "Reckless Charge",
+      "emoji": "💥",
+      "color": "Red",
+      "points": 4,
+      "keywords": [],
+      "text": "Reckless. Choose an opponent: destroy one Trait from their Row and one from your own.",
+      "immediateEffect": {
+        "type": "destroyMutual",
+        "params": {
+          "target": "nextOpponent"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 2,
+      "designNotes": "Mutual destruction; you pick who to hit."
+    },
+    {
+      "id": "t145",
+      "name": "Nephron Cluster",
+      "emoji": "🫘",
+      "color": "Green",
+      "points": 0,
+      "keywords": [],
+      "text": "This is worth 2 for each Nephron Cluster in your Trait Row (including this one).",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "dynamicValue",
+        "params": {
+          "basis": "sameNameCount",
+          "per": 2
+        }
+      },
+      "quantity": 4,
+      "designNotes": "Stacks with copies of itself; collect the set."
+    },
+    {
+      "id": "t146",
+      "name": "Migraine Spore",
+      "emoji": "🤕",
+      "color": "Red",
+      "points": 2,
+      "keywords": [],
+      "text": "An opponent discards 2 cards from their hand at random.",
+      "immediateEffect": {
+        "type": "discardRandomOpponent",
+        "params": {
+          "target": "nextOpponent",
+          "count": 2
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 2,
+      "designNotes": "Hand attack."
+    },
+    {
+      "id": "t147",
+      "name": "Hot Potato Gene",
+      "emoji": "🥔",
+      "color": "Purple",
+      "points": -2,
+      "keywords": [],
+      "text": "Worth -2. Play another Trait, then move this into an opponent's Trait Row.",
+      "immediateEffect": {
+        "type": "playExtra",
+        "params": {
+          "count": 1,
+          "then": {
+            "type": "moveSelfToOpponent",
+            "params": {
+              "target": "nextOpponent",
+              "value": -2
+            }
+          }
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 2,
+      "designNotes": "Foist a negative body onto a rival."
+    },
+    {
+      "id": "t148",
+      "name": "Bottleneck Burst",
+      "emoji": "⏳",
+      "color": "Purple",
+      "points": 3,
+      "keywords": [],
+      "text": "Every player loses 1 Gene Pool, including you.",
+      "immediateEffect": {
+        "type": "modifyGenePool",
+        "params": {
+          "target": "allPlayers",
+          "direction": "decrease",
+          "amount": 1
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 2,
+      "designNotes": "Symmetric Gene Pool squeeze."
+    },
+    {
+      "id": "t149",
+      "name": "Crimson Poacher",
+      "emoji": "🎯",
+      "color": "Purple",
+      "points": 3,
+      "keywords": [],
+      "text": "Steal a Red Trait from any opponent's Trait Row.",
+      "immediateEffect": {
+        "type": "stealChosenPublicTrait",
+        "params": {
+          "target": "anyPlayer",
+          "color": "Red"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 2,
+      "designNotes": "Color-targeted board steal."
+    },
+    {
+      "id": "t150",
+      "name": "Mind Siphon",
+      "emoji": "🧠",
+      "color": "Blue",
+      "points": 2,
+      "keywords": [],
+      "text": "Look at 2 random cards from an opponent's hand, take 1, and play it immediately.",
+      "immediateEffect": {
+        "type": "stealPeekPlay",
+        "params": {
+          "target": "nextOpponent",
+          "peek": 2,
+          "playImmediately": true
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 2,
+      "designNotes": "Peek, steal, and slam it down."
+    },
+    {
+      "id": "t151",
+      "name": "Ransack",
+      "emoji": "🫳",
+      "color": "Red",
+      "points": 2,
+      "keywords": [],
+      "text": "Take 2 random cards from an opponent's hand.",
+      "immediateEffect": {
+        "type": "stealRandom",
+        "params": {
+          "target": "nextOpponent",
+          "count": 2,
+          "zone": "hand"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 2,
+      "designNotes": "Double hand steal."
+    },
+    {
+      "id": "t152",
+      "name": "Echo Spawn",
+      "emoji": "🧬",
+      "color": "Green",
+      "points": 1,
+      "keywords": [],
+      "text": "Play the top of the discard pile (ignore its action). When you next play a Green Trait, return this to your hand.",
+      "immediateEffect": {
+        "type": "playTopDiscard",
+        "params": {}
+      },
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "returnOnColorPlay",
+        "params": {
+          "color": "Green"
+        }
+      },
+      "quantity": 2,
+      "designNotes": "Self-replicating engine piece."
+    },
+    {
+      "id": "t153",
+      "name": "Final Gambit",
+      "emoji": "🎲",
+      "color": "Red",
+      "points": 5,
+      "keywords": [
+        "Late"
+      ],
+      "text": "Late. Can be played in the end-of-turn Late window; when played it grants an extra Trait play.",
+      "immediateEffect": {
+        "type": "playExtra",
+        "params": {
+          "count": 1,
+          "fullTurn": true
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 2,
+      "designNotes": "At world's end, squeeze in one more play."
     }
   ],
   "ages": [
@@ -3194,6 +3543,234 @@
       },
       "isFinal": true,
       "designNotes": "Alternate finisher favoring curse/poison decks."
+    },
+    {
+      "id": "a023",
+      "name": "Genesis Pool",
+      "emoji": "🥚",
+      "text": "Life begins. Every player's Gene Pool is set to 5.",
+      "effect": {
+        "type": "setGenePool",
+        "params": {
+          "value": 5
+        }
+      },
+      "isOpening": true,
+      "isFinal": false,
+      "designNotes": "Fixed opener; establishes the baseline."
+    },
+    {
+      "id": "a024",
+      "name": "Chromatic Prohibition",
+      "emoji": "🚫",
+      "text": "This Age, no player may play Purple Traits.",
+      "effect": {
+        "type": "none",
+        "params": {}
+      },
+      "rules": {
+        "bannedColors": [
+          "Purple"
+        ]
+      },
+      "isFinal": false,
+      "designNotes": "Color ban Age."
+    },
+    {
+      "id": "a025",
+      "name": "Minimalist Era",
+      "emoji": "🐭",
+      "text": "This Age, you may only play Traits with face value 3 or lower.",
+      "effect": {
+        "type": "none",
+        "params": {}
+      },
+      "rules": {
+        "maxFaceValuePlay": 3
+      },
+      "isFinal": false,
+      "designNotes": "Caps face value played."
+    },
+    {
+      "id": "a026",
+      "name": "Dormant Instincts",
+      "emoji": "😴",
+      "text": "This Age, ignore all Trait actions when played.",
+      "effect": {
+        "type": "none",
+        "params": {}
+      },
+      "rules": {
+        "ignoreTraitActions": true
+      },
+      "isFinal": false,
+      "designNotes": "Traits played as vanilla points this Age."
+    },
+    {
+      "id": "a027",
+      "name": "Vestigial Surge",
+      "emoji": "🧷",
+      "text": "This Age, if you play an effectless Trait you may immediately play another effectless Trait.",
+      "effect": {
+        "type": "none",
+        "params": {}
+      },
+      "rules": {
+        "effectlessChain": true
+      },
+      "isFinal": false,
+      "designNotes": "Rewards plain Traits with tempo."
+    },
+    {
+      "id": "a028",
+      "name": "Steady Population",
+      "emoji": "⚖️",
+      "text": "This Age, you must end your turn with at least 4 cards in hand.",
+      "effect": {
+        "type": "none",
+        "params": {}
+      },
+      "rules": {
+        "endWithHandSize": 4
+      },
+      "isFinal": false,
+      "designNotes": "Fixes end-of-turn hand size."
+    },
+    {
+      "id": "a029",
+      "name": "Monochrome Ban",
+      "emoji": "🔀",
+      "text": "This Age, you may not play a Trait of the same color as the last Trait played.",
+      "effect": {
+        "type": "none",
+        "params": {}
+      },
+      "rules": {
+        "noSameColorAsLast": true
+      },
+      "isFinal": false,
+      "designNotes": "Forces color variety."
+    },
+    {
+      "id": "a030",
+      "name": "Preservation Order",
+      "emoji": "🏛️",
+      "text": "This Age, Traits in Trait Rows cannot be destroyed, stolen, or discarded.",
+      "effect": {
+        "type": "none",
+        "params": {}
+      },
+      "rules": {
+        "lockTraitRow": true
+      },
+      "isFinal": false,
+      "designNotes": "Board lockdown Age."
+    },
+    {
+      "id": "a031",
+      "name": "Age of Heroes",
+      "emoji": "🦸",
+      "text": "This Age, Traits with play requirements may be played without meeting them.",
+      "effect": {
+        "type": "none",
+        "params": {}
+      },
+      "rules": {
+        "freeHeroic": true
+      },
+      "isFinal": false,
+      "designNotes": "Turns off play conditions like Keystone Beast."
+    },
+    {
+      "id": "a032",
+      "name": "Oracle Age",
+      "emoji": "🔮",
+      "text": "This Age, the next Age is revealed to everyone before turns are taken.",
+      "effect": {
+        "type": "none",
+        "params": {}
+      },
+      "rules": {
+        "previewNextAge": true
+      },
+      "isFinal": false,
+      "designNotes": "Information Age; previews what's coming."
+    },
+    {
+      "id": "a033",
+      "name": "Famine",
+      "emoji": "🍽️",
+      "text": "Every player loses 1 Gene Pool.",
+      "effect": {
+        "type": "modifyGenePool",
+        "params": {
+          "target": "allPlayers",
+          "direction": "decrease",
+          "amount": 1
+        }
+      },
+      "isFinal": false,
+      "designNotes": "Symmetric Gene Pool drain."
+    },
+    {
+      "id": "a034",
+      "name": "Overgrowth Tax",
+      "emoji": "🌿",
+      "text": "Discard 1 card from your hand for each Green Trait in your Trait Row.",
+      "effect": {
+        "type": "discardPerColor",
+        "params": {
+          "color": "Green"
+        }
+      },
+      "isFinal": false,
+      "designNotes": "Punishes wide Green boards."
+    },
+    {
+      "id": "a035",
+      "name": "Selective Draft",
+      "emoji": "🃏",
+      "text": "Each player draws 3 cards, keeps 1, and discards 2.",
+      "effect": {
+        "type": "drawKeepDiscard",
+        "params": {
+          "draw": 3,
+          "keep": 1
+        }
+      },
+      "isFinal": false,
+      "designNotes": "Dig for a card, thin the rest."
+    },
+    {
+      "id": "a036",
+      "name": "Culling Winds",
+      "emoji": "🌬️",
+      "text": "Every player discards 1 card from their hand at random.",
+      "effect": {
+        "type": "discardRandomOpponent",
+        "params": {
+          "target": "allPlayers",
+          "count": 1
+        }
+      },
+      "isFinal": false,
+      "designNotes": "Light symmetric hand attack."
+    },
+    {
+      "id": "a037",
+      "name": "The Long Silence",
+      "emoji": "🌑",
+      "text": "World's End. Lose 1 point for each Purple Trait, and the largest Trait Row loses 5 points.",
+      "effect": {
+        "type": "worldsEndScore",
+        "params": {
+          "perColorPenalty": "Purple",
+          "amount": 1,
+          "mostTraitsPenalty": 5
+        }
+      },
+      "isFinal": true,
+      "designNotes": "Scoring-flavored finale that punishes going wide."
     }
   ]
 }

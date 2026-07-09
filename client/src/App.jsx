@@ -39,12 +39,71 @@ function formatPoints(value) {
   return numericValue > 0 ? `+${numericValue}` : String(numericValue);
 }
 
+function ageRuleLabels(rules) {
+  if (!rules) {
+    return [];
+  }
+
+  const labels = [];
+
+  if (rules.bannedColors?.length) {
+    labels.push(`No ${rules.bannedColors.join(" or ")} Traits`);
+  }
+  if (rules.maxFaceValuePlay != null) {
+    labels.push(`Face value ≤ ${rules.maxFaceValuePlay}`);
+  }
+  if (rules.ignoreTraitActions) {
+    labels.push("Trait actions ignored");
+  }
+  if (rules.effectlessChain) {
+    labels.push("Effectless combo");
+  }
+  if (rules.endWithHandSize != null) {
+    labels.push(`End turn with ${rules.endWithHandSize} cards`);
+  }
+  if (rules.noSameColorAsLast) {
+    labels.push("No repeat colors");
+  }
+  if (rules.lockTraitRow) {
+    labels.push("Trait Rows locked");
+  }
+  if (rules.freeHeroic) {
+    labels.push("Play requirements waived");
+  }
+  if (rules.previewNextAge) {
+    labels.push("Next Age revealed");
+  }
+
+  return labels;
+}
+
+function playConditionLabel(card) {
+  const condition = card.playCondition;
+
+  if (!condition) {
+    return null;
+  }
+
+  if (condition.minColorCount) {
+    const { color, count } = condition.minColorCount;
+    return `Needs ${count} ${color}`;
+  }
+
+  if (condition.maxFaceValue != null) {
+    return `Value ≤ ${condition.maxFaceValue} only`;
+  }
+
+  return null;
+}
+
 function TraitCard({ card, actionLabel, onAction, disabled, subtle = false }) {
   const keywords = card.keywords || [];
   const points = card.effectivePoints ?? card.points ?? 0;
   const keywordKey = card.instanceId || card.id || card.name;
+  const conditionLabel = playConditionLabel(card);
   const classNames = [
     "trait-card",
+    "trait-card--enter",
     `trait-card--color-${colorKey(card.color)}`,
     subtle ? "trait-card--subtle" : "",
     keywords.includes("Dominant") ? "trait-card--dominant" : "",
@@ -63,7 +122,13 @@ function TraitCard({ card, actionLabel, onAction, disabled, subtle = false }) {
         </span>
         <div className="trait-card__title">
           <h4>{card.name}</h4>
-          <span className={`face-value${points < 0 ? " face-value--negative" : ""}`}>{formatPoints(points)}</span>
+          <span
+            className={`face-value${points < 0 ? " face-value--negative" : ""}${card.isDynamicValue ? " face-value--dynamic" : ""}`}
+            title={card.isDynamicValue ? "This value changes with the game state" : undefined}
+          >
+            {card.isDynamicValue ? "~" : ""}
+            {formatPoints(points)}
+          </span>
         </div>
       </div>
       <p className="trait-card__text">{card.text}</p>
@@ -73,6 +138,8 @@ function TraitCard({ card, actionLabel, onAction, disabled, subtle = false }) {
             {keyword}
           </span>
         ))}
+        {conditionLabel ? <span className="meta-pill meta-pill--condition">{conditionLabel}</span> : null}
+        {card.isDynamicValue ? <span className="meta-pill meta-pill--dynamic">Dynamic</span> : null}
         {card.status?.poisoned ? <span className="status-pill">Poison {card.status.poisoned}</span> : null}
         {card.parasiteOwnerName ? <span className="status-pill">Parasite by {card.parasiteOwnerName}</span> : null}
         {card.isDoubled ? <span className="meta-pill">x2 this Age</span> : null}
@@ -844,6 +911,20 @@ function App() {
                 {roomState.currentAge?.emoji} {roomState.currentAge?.name}
               </h1>
               <p className="lede">{roomState.currentAge?.text}</p>
+              {ageRuleLabels(roomState.ageRules).length ? (
+                <div className="age-rules">
+                  {ageRuleLabels(roomState.ageRules).map((label) => (
+                    <span key={label} className="rule-pill">
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+              {roomState.nextAgePreview ? (
+                <p className="next-age-preview">
+                  Next Age: {roomState.nextAgePreview.emoji} <strong>{roomState.nextAgePreview.name}</strong> — {roomState.nextAgePreview.text}
+                </p>
+              ) : null}
             </div>
             <div className="status-strip">
               <span className="meta-pill">Room {roomState.code}</span>

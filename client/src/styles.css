@@ -298,6 +298,40 @@ input {
   animation: age-reveal 900ms ease both;
 }
 
+.age-rules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.rule-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--accent-strong);
+  background: rgba(163, 71, 42, 0.12);
+  border: 1px solid rgba(163, 71, 42, 0.2);
+  animation: choice-enter 320ms ease both;
+}
+
+.next-age-preview {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 0.9rem;
+  color: var(--muted);
+  background: rgba(63, 120, 168, 0.08);
+  border: 1px dashed rgba(63, 120, 168, 0.32);
+}
+
+.next-age-preview strong {
+  color: var(--text);
+}
+
 .trait-card {
   display: grid;
   gap: 12px;
@@ -309,6 +343,10 @@ input {
   background: var(--card-bg, linear-gradient(180deg, rgba(255, 251, 244, 0.98), rgba(246, 238, 220, 0.94)));
   border: 1px solid var(--card-line, rgba(80, 94, 79, 0.16));
   box-shadow: inset 0 7px 0 var(--card-accent, rgba(80, 94, 79, 0.3));
+}
+
+.trait-card--enter {
+  animation: card-deal-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .trait-card--color-green {
@@ -410,6 +448,24 @@ input {
 
 .face-value--negative {
   background: #7d2f32;
+}
+
+.face-value--dynamic {
+  background: linear-gradient(135deg, #6b4fa2, #3f78a8);
+  box-shadow: 0 0 0 2px rgba(118, 85, 162, 0.28);
+  animation: number-pop 520ms ease both, dynamic-glow 2600ms ease-in-out infinite;
+}
+
+.meta-pill--condition {
+  background: rgba(173, 118, 21, 0.16);
+  color: #8a5b10;
+  font-weight: 700;
+}
+
+.meta-pill--dynamic {
+  background: rgba(118, 85, 162, 0.16);
+  color: #6b4fa2;
+  font-weight: 700;
 }
 
 .trait-card__meta {
@@ -717,6 +773,29 @@ input {
 
   100% {
     transform: scale(1);
+  }
+}
+
+@keyframes card-deal-in {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes dynamic-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px rgba(118, 85, 162, 0.28);
+  }
+
+  50% {
+    box-shadow: 0 0 0 3px rgba(63, 120, 168, 0.4);
   }
 }
 

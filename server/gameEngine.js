@@ -72,18 +72,25 @@ function createTraitDeck() {
 
 function createAgeDeck(playerCount) {
   const finalAges = AGE_CARDS.filter((age) => age.isFinal);
+  const openingAges = AGE_CARDS.filter((age) => age.isOpening && !age.isFinal);
   const catastropheTypes = new Set(["destroyOpponentTrait", "destroyOwnTrait", "poison", "discardRandomOpponent", "placeParasite"]);
   const isCatastrophe = (age) => Boolean(age.isFinal || catastropheTypes.has(age.effect?.type));
-  const catastropheAges = AGE_CARDS.filter((age) => !age.isFinal && isCatastrophe(age));
-  const normalAges = AGE_CARDS.filter((age) => !age.isFinal && !isCatastrophe(age));
+  const catastropheAges = AGE_CARDS.filter((age) => !age.isFinal && !age.isOpening && isCatastrophe(age));
+  const normalAges = AGE_CARDS.filter((age) => !age.isFinal && !age.isOpening && !isCatastrophe(age));
   const totalAges = 12;
   const catastropheSlots = new Set([4, 8]);
   const normalDeck = shuffle(normalAges);
   const catastropheDeck = shuffle(catastropheAges);
   const finalAge = shuffle(finalAges)[0] || normalAges[0];
+  const openingAge = shuffle(openingAges)[0] || null;
   const ages = [];
 
   for (let number = 1; number < totalAges; number += 1) {
+    if (number === 1 && openingAge) {
+      ages.push({ ...clone(openingAge), isCatastrophe: false });
+      continue;
+    }
+
     const pool = catastropheSlots.has(number) ? catastropheDeck : normalDeck;
     const fallbackPool = catastropheSlots.has(number) ? normalDeck : catastropheDeck;
     const age = pool.length ? pool.pop() : fallbackPool.pop();
@@ -232,16 +239,52 @@ function printedPoints(card) {
   return Number(card?.points || 0) * Number(card?.pointMultiplier || 1);
 }
 
-function cardScoreForHost(card) {
+function dynamicTraitValue(player, card) {
+  if (!player || card?.token || card?.parasiteOwnerId) {
+    return null;
+  }
+
+  const passive = card?.passiveEffect;
+
+  if (passive?.type !== "dynamicValue") {
+    return null;
+  }
+
+  const params = passive.params || {};
+  let count = 0;
+
+  if (params.basis === "genePoolSize") {
+    count = Number(player.genePoolSize || STARTING_GENE_POOL_SIZE);
+  } else if (params.basis === "sameNameCount") {
+    count = player.board.filter((candidate) => candidate.name === card.name).length;
+  } else if (params.basis === "colorCount") {
+    count = colorCount(player, params.color);
+  } else if (params.basis === "boardCount") {
+    count = player.board.length;
+  } else {
+    return null;
+  }
+
+  const value = count * Number(params.per ?? 1) + Number(params.base || 0);
+  return Number(value) * Number(card?.pointMultiplier || 1);
+}
+
+function cardScoreForHost(card, player = null) {
   if (card.parasiteOwnerId) {
     return Number(card.parasiteValue ?? card.points ?? -1);
+  }
+
+  const dynamic = dynamicTraitValue(player, card);
+
+  if (dynamic != null) {
+    return dynamic;
   }
 
   return printedPoints(card);
 }
 
 function boardPoints(player) {
-  return player.board.reduce((total, card) => total + cardScoreForHost(card), 0);
+  return player.board.reduce((total, card) => total + cardScoreForHost(card, player), 0);
 }
 
 function clampGenePoolSize(value) {
@@ -524,7 +567,16 @@ function nonDominantBoardEntries(room, players, allowDominant = false) {
 }
 
 function selectTraitEntry(room, players, fallback = "lowestPointNonDominantTrait", options = {}) {
-  const entries = nonDominantBoardEntries(room, players, Boolean(options.allowDominant));
+  let entries = nonDominantBoardEntries(room, players, Boolean(options.allowDominant));
+
+  if (options.color) {
+    const wanted = normalizeColor(options.color);
+    entries = entries.filter((entry) => effectiveColor(entry.player, entry.card) === wanted);
+  }
+
+  if (options.excludeInstanceId) {
+    entries = entries.filter((entry) => entry.card.instanceId !== options.excludeInstanceId);
+  }
 
   if (!entries.length) {
     return null;
@@ -570,7 +622,12 @@ function consumeDestroyBlocker(room, player, blocker, targetCard) {
 }
 
 function eligibleTraitEntries(room, players, options = {}) {
-  const entries = nonDominantBoardEntries(room, players, Boolean(options.allowDominant));
+  let entries = nonDominantBoardEntries(room, players, Boolean(options.allowDominant));
+
+  if (options.color) {
+    const wanted = normalizeColor(options.color);
+    entries = entries.filter((entry) => effectiveColor(entry.player, entry.card) === wanted);
+  }
 
   if (options.filter === "playedThisAge" && room.lastPlayedTrait?.card?.instanceId) {
     return entries.filter((entry) => entry.card.instanceId === room.lastPlayedTrait.card.instanceId);
@@ -621,6 +678,11 @@ function assertNoPendingChoice(room) {
 
 function removeBoardEntry(room, entry, reason = "destroyed", options = {}) {
   if (!entry) {
+    return null;
+  }
+
+  if (ageRules(room).lockTraitRow && !options.bypassLock) {
+    addLog(room, `${entry.card.name} is protected this Age and cannot be removed.`);
     return null;
   }
 
@@ -868,7 +930,8 @@ function publicTraitChoiceEntries(room, actor, params = {}) {
   const targets = targetPlayers(room, actor, params.target || "nextOpponent");
   return eligibleTraitEntries(room, targets, {
     allowDominant: Boolean(params.allowDominant),
-    filter: params.filter
+    filter: params.filter,
+    color: params.color
   });
 }
 
@@ -1364,13 +1427,17 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
       }
 
       const target = targetPlayers(room, actor, params.target || "opponentHighestGenePoolPoints")[0];
-      const entry = target ? selectTraitEntry(room, [target], params.fallback || "highestPointNonDominantTrait") : null;
+      const entry = target
+        ? selectTraitEntry(room, [target], params.fallback || "highestPointNonDominantTrait", { color: params.color })
+        : null;
 
       if (entry) {
         const [stolen] = entry.player.board.splice(entry.index, 1);
         stolen.ownerId = actor.id;
         actor.board.push(stolen);
         addLog(room, `${actor.name} stole ${stolen.name} from ${entry.player.name}'s Trait Row.`);
+      } else if (params.color) {
+        addLog(room, `${sourceCard.name} found no ${normalizeColor(params.color)} Trait to steal.`);
       }
       break;
     }
@@ -1426,7 +1493,7 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
           `${actor.name} may play ${count} extra Trait${count === 1 ? "" : "s"} this turn${allowedColors.length ? ` (${formatColorRestriction(allowedColors)})` : ""}.`
         );
       }
-      break;
+      return applyThen(room, actor, sourceCard, params, context);
     }
 
     case "reviveFromDiscard":
@@ -1524,6 +1591,89 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
       break;
     }
 
+    case "destroyMutual": {
+      const target = targetPlayers(room, actor, params.target || "nextOpponent")[0];
+
+      if (target) {
+        removeBoardEntry(room, selectTraitEntry(room, [target], params.fallback || "lowestPointNonDominantTrait"), "destroyed");
+      }
+
+      removeBoardEntry(
+        room,
+        selectTraitEntry(room, [actor], params.selfFallback || "lowestPointNonDominantTrait", {
+          excludeInstanceId: sourceCard.instanceId
+        }),
+        "destroyed"
+      );
+      return applyThen(room, actor, sourceCard, params, context);
+    }
+
+    case "stealPeekPlay": {
+      const target = targetPlayers(room, actor, params.target || "nextOpponent")[0];
+
+      if (!target || !target.hand.length) {
+        addLog(room, `${sourceCard.name} found no cards to take.`);
+        return applyThen(room, actor, sourceCard, params, context);
+      }
+
+      const peek = Math.min(Number(params.peek || 2), target.hand.length);
+      const shuffled = shuffle(target.hand.map((card, index) => ({ card, index })));
+      const seen = shuffled.slice(0, peek);
+      const chosen = seen.reduce((best, entry) => (printedPoints(entry.card) > printedPoints(best.card) ? entry : best), seen[0]);
+      const handIndex = target.hand.findIndex((card) => card.instanceId === chosen.card.instanceId);
+      const [stolen] = target.hand.splice(handIndex, 1);
+      stolen.ownerId = actor.id;
+      addLog(room, `${actor.name} looked at ${peek} of ${target.name}'s cards and took ${stolen.name}.`, actor.id);
+      addLog(room, `${actor.name} peeked at ${target.name}'s hand and stole a card.`);
+
+      if (params.playImmediately === false || isParasite(stolen)) {
+        actor.hand.push(stolen);
+      } else {
+        actor.board.push(stolen);
+        addLog(room, `${actor.name} immediately played ${stolen.name}.`);
+        const pending = applyEffect(room, actor, stolen.immediateEffect, stolen, { finishAfterChoice: context.finishAfterChoice });
+        room.lastPlayedTrait = { card: stolen, playerId: actor.id };
+
+        if (pending) {
+          return true;
+        }
+      }
+
+      return applyThen(room, actor, sourceCard, params, context);
+    }
+
+    case "moveSelfToOpponent": {
+      const target = targetPlayers(room, actor, params.target || "nextOpponent")[0];
+      const index = actor.board.findIndex((card) => card.instanceId === sourceCard.instanceId);
+
+      if (target && index !== -1) {
+        const [moved] = actor.board.splice(index, 1);
+        moved.parasiteOwnerId = actor.id;
+        moved.parasiteValue = Number(params.value ?? moved.points ?? -2);
+        target.board.push(moved);
+        addLog(room, `${actor.name} moved ${moved.name} into ${target.name}'s Trait Row.`);
+      }
+
+      return applyThen(room, actor, sourceCard, params, context);
+    }
+
+    case "playTopDiscard": {
+      const forced = { ...params, forceTop: true };
+
+      if (context.finishAfterChoice && params.choose) {
+        const pending = reviveOrPlayDiscard(room, actor, sourceCard, params, "play", context);
+
+        if (pending) {
+          return true;
+        }
+
+        return applyThen(room, actor, sourceCard, params, context);
+      }
+
+      reviveOrPlayDiscard(room, actor, sourceCard, forced, "play");
+      return applyThen(room, actor, sourceCard, params, context);
+    }
+
     default:
       addLog(room, `${sourceCard.name} has an effect that is not implemented yet.`);
       break;
@@ -1559,14 +1709,88 @@ function applyAgeEffect(room) {
   const age = room.currentAge;
   const effect = age?.effect;
 
+  if (age) {
+    addLog(room, `Age revealed: ${age.name}. ${age.text}`);
+  }
+
   if (!effect) {
     return;
   }
 
   const params = effect.params || {};
-  addLog(room, `Age revealed: ${age.name}. ${age.text}`);
 
   switch (effect.type) {
+    case "worldsEndScore":
+    case "none":
+      break;
+
+    case "setGenePool":
+      room.players.forEach((player) => {
+        player.genePoolSize = clampGenePoolSize(Number(params.value || STARTING_GENE_POOL_SIZE));
+      });
+      break;
+
+    case "modifyGenePool":
+      room.players.forEach((player) => {
+        const base = typeof params.amount === "string" ? resolveCount(room, player, params.amount, 1) : Number(params.amount || 1);
+        const amount = params.direction === "decrease" ? -Math.abs(base) : Math.abs(base);
+        modifyGenePoolSize(room, player, amount, age.name);
+      });
+      break;
+
+    case "discardPerColor":
+      room.players.forEach((player) => {
+        const count = colorCount(player, params.color || "Green");
+
+        for (let index = 0; index < count; index += 1) {
+          const discarded = discardCardFromHand(room, player);
+
+          if (discarded) {
+            addLog(room, `${player.name} discarded ${discarded.name}.`, player.id);
+            addLog(room, `${player.name} discarded a card.`);
+          }
+        }
+      });
+      break;
+
+    case "drawKeepDiscard":
+      room.players.forEach((player) => {
+        const drawn = drawCard(room, player, Number(params.draw || 3));
+        const keep = Number(params.keep || 1);
+        const toDiscard = Math.max(0, drawn - keep);
+
+        for (let index = 0; index < toDiscard; index += 1) {
+          const discarded = discardCardFromHand(room, player);
+
+          if (discarded) {
+            addLog(room, `${player.name} discarded ${discarded.name}.`, player.id);
+          }
+        }
+
+        addLog(room, `${player.name} drew ${drawn} and kept ${Math.max(0, drawn - toDiscard)}.`);
+      });
+      break;
+
+    case "conditionalSteal":
+      room.players.forEach((player) => {
+        const hasTrait = player.board.some((card) => (card.tags || card.keywords || []).includes(params.requiresKeyword) || card.name === params.requiresName);
+
+        if (!hasTrait) {
+          return;
+        }
+
+        const target = targetPlayers(room, player, "nextOpponent")[0];
+        const stolen = target?.hand.length ? target.hand.splice(Math.floor(Math.random() * target.hand.length), 1)[0] : null;
+
+        if (stolen) {
+          stolen.ownerId = player.id;
+          player.hand.push(stolen);
+          addLog(room, `${player.name}'s ${params.requiresName || params.requiresKeyword} stole a card from ${target.name}.`);
+        }
+      });
+      break;
+
+    case "draw":
     case "draw":
       room.players.forEach((player) => {
         if ((params.condition === "ownBody2" || params.condition === "ownGreen2") && colorCount(player, "Green") < 2) {
@@ -1896,6 +2120,35 @@ function requireCurrentTurn(room, playerId) {
   return player;
 }
 
+function ageRules(room) {
+  return room.currentAge?.rules || {};
+}
+
+function checkPlayCondition(room, player, card) {
+  const condition = card.playCondition;
+
+  if (!condition) {
+    return { ok: true };
+  }
+
+  if (condition.minColorCount) {
+    const { color, count } = condition.minColorCount;
+
+    if (colorCount(player, color) < Number(count || 0)) {
+      return {
+        ok: false,
+        message: `${card.name} needs ${count} ${normalizeColor(color)} Traits in your Row.`
+      };
+    }
+  }
+
+  if (condition.maxFaceValue != null && Number(card.points || 0) > Number(condition.maxFaceValue)) {
+    return { ok: false, message: `${card.name} cannot be played right now.` };
+  }
+
+  return { ok: true };
+}
+
 function canPlayInCurrentWindow(room, player, card) {
   if (room.turnState?.lateWindow && !isLate(card)) {
     return {
@@ -1913,9 +2166,54 @@ function canPlayInCurrentWindow(room, player, card) {
     };
   }
 
+  const rules = ageRules(room);
+  const cardColor = effectiveColor(player, card);
+
+  if (!(rules.freeHeroic && card.playCondition?.minColorCount)) {
+    const conditionCheck = checkPlayCondition(room, player, card);
+
+    if (!conditionCheck.ok) {
+      return conditionCheck;
+    }
+  }
+
+  const bannedColors = uniqueNormalizedColors(rules.bannedColors || []);
+
+  if (bannedColors.includes(cardColor)) {
+    return { ok: false, message: `This Age forbids ${cardColor} Traits.` };
+  }
+
+  if (rules.maxFaceValuePlay != null && Number(card.points || 0) > Number(rules.maxFaceValuePlay)) {
+    return { ok: false, message: `This Age only allows Traits of face value ${rules.maxFaceValuePlay} or lower.` };
+  }
+
+  if (rules.noSameColorAsLast && room.lastPlayedTrait?.card) {
+    const lastOwner = findPlayer(room, room.lastPlayedTrait.playerId);
+    const lastColor = effectiveColor(lastOwner || player, room.lastPlayedTrait.card);
+
+    if (lastColor === cardColor) {
+      return { ok: false, message: `This Age forbids playing a ${cardColor} Trait after another ${cardColor} Trait.` };
+    }
+  }
+
+  if (room.turnState?.effectlessOnly) {
+    if (!isEffectlessTrait(card)) {
+      return { ok: false, message: "This bonus play must be an effectless Trait." };
+    }
+  }
+
   return {
     ok: true
   };
+}
+
+function isEffectlessTrait(card) {
+  if (card.immediateEffect || card.endEffect) {
+    return false;
+  }
+
+  const passiveType = card.passiveEffect?.type;
+  return !passiveType || passiveType === "noEffect";
 }
 
 function continueAfterActionCleanup(room) {
@@ -1947,10 +2245,21 @@ function completeAfterPlay(room, player) {
   }
 
   if (!player.flags.noDrawThisAge) {
-    const drawn = drawToHandSize(room, player);
+    const fixedHand = ageRules(room).endWithHandSize;
 
-    if (drawn) {
-      addLog(room, `${player.name} drew back up toward their Gene Pool (${handLimitFor(player)}).`, player.id);
+    if (fixedHand != null) {
+      const needed = Math.max(0, Number(fixedHand) - player.hand.length);
+
+      if (needed) {
+        drawCard(room, player, needed);
+        addLog(room, `${player.name} drew up to ${fixedHand} cards for this Age.`, player.id);
+      }
+    } else {
+      const drawn = drawToHandSize(room, player);
+
+      if (drawn) {
+        addLog(room, `${player.name} drew back up toward their Gene Pool (${handLimitFor(player)}).`, player.id);
+      }
     }
   }
 
@@ -2003,17 +2312,50 @@ function playCard(room, playerId, cardInstanceId) {
     }
   }
 
+  const rules = ageRules(room);
+  const actionsSuppressed = Boolean(rules.ignoreTraitActions);
   let isWaitingForChoice = false;
 
-  if (isParasite(card)) {
+  if (isParasite(card) && !actionsSuppressed) {
     isWaitingForChoice = placeParasiteCard(room, player, card, { finishAfterChoice: "play" });
   } else {
     player.board.push(card);
     addLog(room, `${player.name} played ${card.name}.`);
-    isWaitingForChoice = applyEffect(room, player, card.immediateEffect, card, {
-      previousTrait,
-      finishAfterChoice: "play"
-    });
+
+    if (actionsSuppressed && card.immediateEffect) {
+      addLog(room, `The Age suppressed ${card.name}'s action.`);
+    } else {
+      isWaitingForChoice = applyEffect(room, player, card.immediateEffect, card, {
+        previousTrait,
+        finishAfterChoice: "play"
+      });
+    }
+  }
+
+  if (rules.effectlessChain && isEffectlessTrait(card) && room.turnState && room.turnState.playsRemaining <= 0 && !room.turnState.effectlessGranted) {
+    room.turnState.playsRemaining = 1;
+    room.turnState.effectlessOnly = true;
+    room.turnState.effectlessGranted = true;
+    addLog(room, `${player.name} may play another effectless Trait.`);
+  } else if (room.turnState?.effectlessOnly && room.turnState.playsRemaining <= 0) {
+    room.turnState.effectlessOnly = false;
+  }
+
+  const playedColor = effectiveColor(player, card);
+
+  for (let index = player.board.length - 1; index >= 0; index -= 1) {
+    const boardCard = player.board[index];
+
+    if (boardCard.instanceId === card.instanceId || boardCard.passiveEffect?.type !== "returnOnColorPlay") {
+      continue;
+    }
+
+    if (normalizeColor(boardCard.passiveEffect.params?.color || "Green") === playedColor) {
+      const [returned] = player.board.splice(index, 1);
+      returned.status = {};
+      player.hand.push(returned);
+      addLog(room, `${returned.name} returned to ${player.name}'s hand after a ${playedColor} Trait was played.`, player.id);
+    }
   }
 
   room.lastPlayedTrait = { card, playerId: player.id };
@@ -2326,6 +2668,50 @@ function scoreEndEffect(room, player, card, effect, baseScores) {
   return null;
 }
 
+function worldsEndScore(room, player, baseScores) {
+  const effect = room.currentAge?.isFinal ? room.currentAge.effect : null;
+
+  if (effect?.type !== "worldsEndScore") {
+    return null;
+  }
+
+  const params = effect.params || {};
+  let points = 0;
+  const labels = [];
+
+  if (params.perColorPenalty) {
+    const color = normalizeColor(params.perColorPenalty);
+    const penalty = colorCount(player, color) * Number(params.amount || 1);
+
+    if (penalty) {
+      points -= penalty;
+      labels.push(`-${penalty} for ${color} Traits`);
+    }
+  }
+
+  if (params.perColorBonus) {
+    const color = normalizeColor(params.perColorBonus);
+    const bonus = colorCount(player, color) * Number(params.amount || 1);
+
+    if (bonus) {
+      points += bonus;
+      labels.push(`+${bonus} for ${color} Traits`);
+    }
+  }
+
+  if (params.mostTraitsPenalty) {
+    const maxCount = Math.max(...room.players.map((candidate) => candidate.board.length));
+
+    if (player.board.length === maxCount && maxCount > 0) {
+      const penalty = Number(params.mostTraitsPenalty);
+      points -= penalty;
+      labels.push(`-${penalty} for the largest Trait Row`);
+    }
+  }
+
+  return points ? { points, text: `World's End: ${labels.join(", ")}` } : null;
+}
+
 function finishGame(room) {
   if (!room.players.length) {
     room.phase = "gameOver";
@@ -2342,6 +2728,13 @@ function finishGame(room) {
 
     if (bonusTotal) {
       breakdown.push(`Age bonuses: +${bonusTotal}`);
+    }
+
+    const worldsEnd = worldsEndScore(room, player, baseScores);
+
+    if (worldsEnd) {
+      bonusTotal += worldsEnd.points;
+      breakdown.push(worldsEnd.text);
     }
 
     player.board.forEach((card) => {
@@ -2459,14 +2852,16 @@ function sanitizeLog(room, playerId) {
     }));
 }
 
-function decorateCard(room, card) {
+function decorateCard(room, card, boardOwner = null) {
   const owner = card.parasiteOwnerId ? findPlayer(room, card.parasiteOwnerId) : null;
+  const dynamic = boardOwner ? dynamicTraitValue(boardOwner, card) : null;
 
   return {
     ...card,
     color: normalizeColor(card.colorOverride || card.color),
     tags: [...(card.keywords || [])].filter(Boolean),
-    effectivePoints: cardScoreForHost(card),
+    effectivePoints: cardScoreForHost(card, boardOwner),
+    isDynamicValue: dynamic != null,
     isDoubled: Number(card.pointMultiplier || 1) > 1,
     status: card.status || {},
     parasiteOwnerName: owner?.name || null
@@ -2486,7 +2881,7 @@ function sanitizePlayer(room, player, viewerId) {
     handCount: player.hand.length,
     genePoolSize: Number(player.genePoolSize || STARTING_GENE_POOL_SIZE),
     handLimit: handLimitFor(player),
-    board: player.board.map((card) => decorateCard(room, card)),
+    board: player.board.map((card) => decorateCard(room, card, player)),
     shield: 0,
     hasActedThisAge: player.hasActedThisAge,
     currentBoardPoints: boardPoints(player)
@@ -2600,6 +2995,8 @@ function sanitizeRoomForPlayer(room, playerId) {
     players: room.players.map((player) => sanitizePlayer(room, player, playerId)),
     log: sanitizeLog(room, playerId),
     currentAge: room.currentAge,
+    ageRules: room.currentAge?.rules || null,
+    nextAgePreview: room.currentAge?.rules?.previewNextAge ? room.ageDeck[room.ageIndex] || null : null,
     ageIndex: room.ageIndex,
     ageDeckCount: room.ageDeck.length,
     currentPlayerId: current?.id || null,
