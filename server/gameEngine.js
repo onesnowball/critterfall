@@ -243,7 +243,6 @@ function modifyGenePoolSize(room, player, amount, sourceName = "Effect") {
     addLog(room, `${sourceName} decreased ${player.name}'s Gene Pool to ${next}.`);
   }
 
-  autoDiscardToLimit(room, player);
   return delta;
 }
 
@@ -326,14 +325,36 @@ function discardHighestPointCardFromHand(room, player) {
   return discardCardFromHand(room, player, bestIndex);
 }
 
-function autoDiscardToLimit(room, player) {
+function needsHandLimitDiscard(player) {
+  return player.hand.length > handLimitFor(player);
+}
+
+function handLimitDiscardChoice(room, player) {
   const limit = handLimitFor(player);
 
-  while (player.hand.length > limit) {
-    const card = discardCardFromHand(room, player);
-    addLog(room, `${player.name} discarded ${card.name} down to the hand limit.`, player.id);
-    addLog(room, `${player.name} discarded down to the hand limit.`);
-  }
+  return {
+    type: "handLimitDiscard",
+    mode: "discard",
+    playerId: player.id,
+    actorId: player.id,
+    sourceCard: { name: "Gene Pool Limit" },
+    params: {},
+    prompt: `${player.name}: discard down to Gene Pool ${limit}`,
+    choices: player.hand.map((card) => ({
+      id: card.instanceId,
+      cardInstanceId: card.instanceId
+    }))
+  };
+}
+
+function nextHandLimitDiscardChoice(room) {
+  const player = room.players.find((candidate) => needsHandLimitDiscard(candidate));
+  return player ? handLimitDiscardChoice(room, player) : false;
+}
+
+function queueNextHandLimitDiscard(room, context = {}) {
+  const choice = nextHandLimitDiscardChoice(room);
+  return choice ? queueChoice(room, choice, context) : false;
 }
 
 function resolveCount(room, player, value, fallback = 1) {
@@ -563,7 +584,6 @@ function removeBoardEntry(room, entry, reason = "destroyed", options = {}) {
   }
 
   addLog(room, `${entry.player.name}'s ${card.name} was ${reason}.`);
-  autoDiscardToLimit(room, entry.player);
   return card;
 }
 
@@ -990,6 +1010,20 @@ function applyGiveHandCardChoice(room, choice, option, actor) {
   return nextHandTargetChoice(room, choice, actor);
 }
 
+function applyHandLimitDiscardChoice(room, choice, option, actor) {
+  const index = actor.hand.findIndex((card) => card.instanceId === option.cardInstanceId);
+
+  if (index === -1) {
+    return false;
+  }
+
+  const [card] = actor.hand.splice(index, 1);
+  addToDiscard(room, card, actor.id);
+  addLog(room, `${actor.name} discarded ${card.name} down to their Gene Pool.`, actor.id);
+  addLog(room, `${actor.name} discarded down to their Gene Pool.`);
+  return nextHandLimitDiscardChoice(room);
+}
+
 function applyPublicTraitChoice(room, choice, option, actor) {
   const entry = findBoardChoiceEntry(room, choice, option);
 
@@ -1002,7 +1036,6 @@ function applyPublicTraitChoice(room, choice, option, actor) {
     stolen.ownerId = actor.id;
     actor.board.push(stolen);
     addLog(room, `${actor.name} stole ${stolen.name} from ${entry.player.name}'s Trait Row.`);
-    autoDiscardToLimit(room, entry.player);
   } else {
     removeBoardEntry(room, entry, "destroyed");
   }
@@ -1107,8 +1140,6 @@ function applyStabilize(room) {
         }
       }
     });
-
-    autoDiscardToLimit(room, player);
   });
 
   room.revealedHands = {};
@@ -1235,7 +1266,6 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
           stolen.ownerId = actor.id;
           actor.board.push(stolen);
           addLog(room, `${actor.name} stole ${stolen.name} from ${target.name}'s Trait Row.`);
-          autoDiscardToLimit(room, target);
           return;
         }
 
@@ -1270,7 +1300,6 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
         stolen.ownerId = actor.id;
         actor.board.push(stolen);
         addLog(room, `${actor.name} stole ${stolen.name} from ${entry.player.name}'s Trait Row.`);
-        autoDiscardToLimit(room, entry.player);
       }
       break;
     }
@@ -1657,6 +1686,18 @@ function beginTurn(room) {
   addLog(room, `${player.name}'s turn.`);
 }
 
+function completeStabilize(room) {
+  if (room.pendingChoice) {
+    return;
+  }
+
+  if (room.currentAge?.isFinal) {
+    finishGame(room);
+  } else {
+    revealAge(room);
+  }
+}
+
 function endTurn(room) {
   const player = currentPlayer(room);
 
@@ -1670,11 +1711,11 @@ function endTurn(room) {
   if (!next) {
     applyStabilize(room);
 
-    if (room.currentAge?.isFinal) {
-      finishGame(room);
-    } else {
-      revealAge(room);
+    if (queueNextHandLimitDiscard(room, { finishAfterChoice: "stabilize" })) {
+      return;
     }
+
+    completeStabilize(room);
     return;
   }
 
@@ -1767,6 +1808,29 @@ function canPlayInCurrentWindow(room, card) {
   return isLate(card);
 }
 
+function continueAfterActionCleanup(room) {
+  if (room.pendingChoice) {
+    return;
+  }
+
+  if (queueNextHandLimitDiscard(room, { finishAfterChoice: "actionCleanup" })) {
+    return;
+  }
+
+  const player = currentPlayer(room);
+
+  if (room.turnState?.playsRemaining <= 0) {
+    if (player && !room.turnState.lateWindow && player.hand.some(isLate)) {
+      room.turnState.lateWindow = true;
+      room.turnState.playsRemaining = 1;
+      addLog(room, `${player.name} may play a Late Trait or pass.`);
+      return;
+    }
+
+    endTurn(room);
+  }
+}
+
 function completeAfterPlay(room, player) {
   if (!player || room.phase !== "playing") {
     return;
@@ -1780,22 +1844,7 @@ function completeAfterPlay(room, player) {
     }
   }
 
-  autoDiscardToLimit(room, player);
-
-  if (room.pendingChoice) {
-    return;
-  }
-
-  if (room.turnState?.playsRemaining <= 0) {
-    if (!room.turnState.lateWindow && player.hand.some(isLate)) {
-      room.turnState.lateWindow = true;
-      room.turnState.playsRemaining = 1;
-      addLog(room, `${player.name} may play a Late Trait or pass.`);
-      return;
-    }
-
-    endTurn(room);
-  }
+  continueAfterActionCleanup(room);
 }
 
 function playCard(room, playerId, cardInstanceId) {
@@ -1868,7 +1917,11 @@ function skipTurn(room, playerId) {
   room.turnState.playsRemaining = 0;
   addLog(room, `${player.name} skipped and drew ${drawn} card${drawn === 1 ? "" : "s"}.`, player.id);
   addLog(room, `${player.name} skipped their play.`);
-  autoDiscardToLimit(room, player);
+
+  if (queueNextHandLimitDiscard(room, { finishAfterChoice: "skipTurn" })) {
+    return;
+  }
+
   endTurn(room);
 }
 
@@ -1921,6 +1974,9 @@ function resolveChoice(room, playerId, choiceId, optionId) {
     case "giveHandCard":
       followup = applyGiveHandCardChoice(room, choice, option, actor);
       break;
+    case "handLimitDiscard":
+      followup = applyHandLimitDiscardChoice(room, choice, option, actor);
+      break;
     case "publicTrait":
       followup = applyPublicTraitChoice(room, choice, option, actor);
       break;
@@ -1942,6 +1998,21 @@ function resolveChoice(room, playerId, choiceId, optionId) {
   });
 
   if (pendingThen) {
+    return;
+  }
+
+  if (choice.finishAfterChoice === "actionCleanup") {
+    continueAfterActionCleanup(room);
+    return;
+  }
+
+  if (choice.finishAfterChoice === "skipTurn") {
+    endTurn(room);
+    return;
+  }
+
+  if (choice.finishAfterChoice === "stabilize") {
+    completeStabilize(room);
     return;
   }
 
@@ -2293,6 +2364,17 @@ function decorateChoiceOption(room, choice, option, viewerId) {
   }
 
   if (choice.type === "giveHandCard") {
+    const actor = findPlayer(room, choice.actorId);
+    const card = actor?.hand.find((candidate) => candidate.instanceId === option.cardInstanceId);
+    return card
+      ? {
+          id: option.id,
+          card: decorateCard(room, card)
+        }
+      : null;
+  }
+
+  if (choice.type === "handLimitDiscard") {
     const actor = findPlayer(room, choice.actorId);
     const card = actor?.hand.find((candidate) => candidate.instanceId === option.cardInstanceId);
     return card

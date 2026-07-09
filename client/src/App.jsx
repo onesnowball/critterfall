@@ -140,6 +140,10 @@ function choiceActionLabel(choice) {
     return "Give This";
   }
 
+  if (choice.type === "handLimitDiscard") {
+    return "Discard This";
+  }
+
   if (choice.type === "publicTrait") {
     return choice.mode === "steal" ? "Steal This" : "Destroy This";
   }
