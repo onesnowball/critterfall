@@ -3287,7 +3287,7 @@
       "color": "Blue",
       "points": 0,
       "keywords": [],
-      "text": "Attach to one of your Traits. Worth +1 for every card in your hand at scoring.",
+      "text": "Attach to one of your Traits. Worth +1 for every card in your hand at scoring, up to +3.",
       "immediateEffect": {
         "type": "attach",
         "params": {
@@ -3299,11 +3299,12 @@
         "type": "dynamicValue",
         "params": {
           "basis": "handSize",
-          "per": 1
+          "per": 1,
+          "cap": 3
         }
       },
       "quantity": 1,
-      "designNotes": "Value scales with hand size."
+      "designNotes": "Value scales with hand size, capped at +3."
     },
     {
       "id": "t162",
@@ -4125,18 +4126,19 @@
       "color": "Purple",
       "points": 0,
       "keywords": [],
-      "text": "Worth +1 for every Trait in your Row.",
+      "text": "Worth +1 for every Purple Trait in your Row.",
       "immediateEffect": null,
       "endEffect": null,
       "passiveEffect": {
         "type": "dynamicValue",
         "params": {
-          "basis": "boardCount",
+          "basis": "colorCount",
+          "color": "Purple",
           "per": 1
         }
       },
       "quantity": 1,
-      "designNotes": "Scales with board size."
+      "designNotes": "Scales with Purple board presence."
     },
     {
       "id": "t202",
@@ -4610,18 +4612,19 @@
       "color": "Purple",
       "points": 0,
       "keywords": [],
-      "text": "Worth +1 for each card in your hand at the world's end.",
+      "text": "Worth +1 for each card in your hand at the world's end, up to +3.",
       "immediateEffect": null,
       "endEffect": null,
       "passiveEffect": {
         "type": "dynamicValue",
         "params": {
           "basis": "handSize",
-          "per": 1
+          "per": 1,
+          "cap": 3
         }
       },
       "quantity": 1,
-      "designNotes": "Rewards a full hand."
+      "designNotes": "Rewards a full hand, capped at +3."
     },
     {
       "id": "t227",
@@ -5014,18 +5017,19 @@
       "color": "Purple",
       "points": 0,
       "keywords": [],
-      "text": "Worth +1 for each Trait in your Row at the world's end.",
+      "text": "Worth +1 for each Purple Trait in your Row at the world's end.",
       "immediateEffect": null,
       "endEffect": null,
       "passiveEffect": {
         "type": "dynamicValue",
         "params": {
-          "basis": "boardCount",
+          "basis": "colorCount",
+          "color": "Purple",
           "per": 1
         }
       },
       "quantity": 1,
-      "designNotes": "Board-size scaler."
+      "designNotes": "Scales with Purple board presence."
     },
     {
       "id": "t248",

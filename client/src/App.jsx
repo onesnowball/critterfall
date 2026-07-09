@@ -263,6 +263,10 @@ function choiceActionLabel(choice) {
     return "Discard This";
   }
 
+  if (choice.type === "ageRansom") {
+    return choice.mode === "discard" ? "Discard This" : "Choose";
+  }
+
   if (choice.type === "publicTrait") {
     if (choice.mode === "steal") {
       return "Steal This";

@@ -44,7 +44,7 @@ function normalizeColor(color) {
 }
 
 function createCardInstance(card, copyIndex = 0) {
-  return {
+  const instance = {
     ...clone(card),
     keywords: [...(card.keywords || [])],
     pointMultiplier: 1,
@@ -54,8 +54,12 @@ function createCardInstance(card, copyIndex = 0) {
     parasiteOwnerId: null,
     parasiteValue: null,
     token: false,
+    attachments: [],
     instanceId: `${card.id}-${copyIndex}-${Math.random().toString(36).slice(2, 9)}`
   };
+
+  delete instance.attachSpec;
+  return instance;
 }
 
 function createTraitDeck() {
@@ -275,6 +279,10 @@ function dynamicTraitValue(player, card, room = null) {
       : Number(player.genePoolSize || STARTING_GENE_POOL_SIZE);
   } else {
     return null;
+  }
+
+  if (params.cap != null) {
+    count = Math.min(count, Number(params.cap));
   }
 
   const value = count * Number(params.per ?? 1) + Number(params.base || 0);
@@ -1215,6 +1223,143 @@ function applyHandLimitDiscardChoice(room, choice, option, actor) {
   return needsHandLimitDiscard(actor) ? handLimitDiscardChoice(room, actor) : false;
 }
 
+function threatenedRansomTargets(room, threshold) {
+  const targets = [];
+
+  room.players.forEach((player) => {
+    player.board.forEach((card) => {
+      if (!isDominant(card) && cardScoreForHost(card, player, room) >= threshold) {
+        targets.push({ playerId: player.id, instanceId: card.instanceId });
+      }
+    });
+  });
+
+  return targets;
+}
+
+function ageRansomDecideChoice(room, target, queue, ransom, threshold) {
+  const player = findPlayer(room, target.playerId);
+  const card = player?.board.find((candidate) => candidate.instanceId === target.instanceId);
+
+  if (!player || !card) {
+    return null;
+  }
+
+  const worth = cardScoreForHost(card, player, room);
+
+  return {
+    type: "ageRansom",
+    mode: "decide",
+    playerId: player.id,
+    actorId: player.id,
+    sourceCard: { name: room.currentAge?.name || "The Age" },
+    params: {},
+    ransom,
+    threshold,
+    ransomPaid: 0,
+    targetInstanceId: card.instanceId,
+    queue,
+    prompt: `${player.name}: discard ${ransom} card${ransom === 1 ? "" : "s"} to save ${card.name} (${worth}), or let it be destroyed`,
+    choices: [
+      { id: "save", label: `Discard ${ransom} to save ${card.name}` },
+      { id: "sacrifice", label: `Let ${card.name} be destroyed` }
+    ]
+  };
+}
+
+function ageRansomDiscardChoice(room, choice, actor) {
+  const ransom = Number(choice.ransom || 2);
+  const paid = Number(choice.ransomPaid || 0);
+
+  return {
+    type: "ageRansom",
+    mode: "discard",
+    playerId: actor.id,
+    actorId: actor.id,
+    sourceCard: choice.sourceCard,
+    params: {},
+    ransom,
+    threshold: choice.threshold,
+    ransomPaid: paid,
+    targetInstanceId: choice.targetInstanceId,
+    queue: choice.queue,
+    prompt: `${actor.name}: choose a card to discard (${ransom - paid} left)`,
+    choices: actor.hand.map((card) => ({ id: card.instanceId, cardInstanceId: card.instanceId }))
+  };
+}
+
+function nextAgeRansom(room, queue, ransom, threshold) {
+  while (queue.length) {
+    const target = queue.shift();
+    const player = findPlayer(room, target.playerId);
+    const card = player?.board.find((candidate) => candidate.instanceId === target.instanceId);
+
+    if (!player || !card) {
+      continue;
+    }
+
+    if (player.hand.length < ransom) {
+      const index = player.board.findIndex((candidate) => candidate.instanceId === card.instanceId);
+      removeBoardEntry(room, { player, card, index }, "destroyed by an Age wipe");
+      continue;
+    }
+
+    return ageRansomDecideChoice(room, target, queue, ransom, threshold);
+  }
+
+  return false;
+}
+
+function applyAgeRansomChoice(room, choice, option, actor) {
+  const ransom = Number(choice.ransom || 2);
+  const threshold = Number(choice.threshold || 3);
+  const queue = choice.queue || [];
+
+  if (choice.mode === "decide") {
+    const index = actor.board.findIndex((candidate) => candidate.instanceId === choice.targetInstanceId);
+    const card = index === -1 ? null : actor.board[index];
+
+    if (option.id === "sacrifice" || !card) {
+      if (card) {
+        removeBoardEntry(room, { player: actor, card, index }, "destroyed by an Age wipe");
+      }
+
+      return nextAgeRansom(room, queue, ransom, threshold);
+    }
+
+    addLog(room, `${actor.name} pays to protect ${card.name} from ${choice.sourceCard?.name || "the Age"}.`);
+    return ageRansomDiscardChoice(room, choice, actor);
+  }
+
+  const handIndex = actor.hand.findIndex((candidate) => candidate.instanceId === option.cardInstanceId);
+
+  if (handIndex !== -1) {
+    const [card] = actor.hand.splice(handIndex, 1);
+    addToDiscard(room, card, actor.id);
+    addLog(room, `${actor.name} discarded ${card.name} to protect a Trait.`, actor.id);
+  }
+
+  const paid = Number(choice.ransomPaid || 0) + 1;
+
+  if (paid < ransom && actor.hand.length) {
+    return ageRansomDiscardChoice(room, { ...choice, ransomPaid: paid }, actor);
+  }
+
+  addLog(room, `${actor.name}'s Trait survived the Age.`);
+  return nextAgeRansom(room, queue, ransom, threshold);
+}
+
+function beginAgeRansom(room, threshold, ransom) {
+  const queue = threatenedRansomTargets(room, threshold);
+  const choice = nextAgeRansom(room, queue, ransom, threshold);
+
+  if (!choice) {
+    return false;
+  }
+
+  return queueChoice(room, choice, { finishAfterChoice: "ageReveal" });
+}
+
 function applyPublicTraitChoice(room, choice, option, actor) {
   const entry = findBoardChoiceEntry(room, choice, option);
 
@@ -2045,6 +2190,11 @@ function applyAgeEffect(room) {
     case "destroyOpponentTrait":
       if (params.scope === "highValue" || params.scope === "value4plus") {
         const threshold = params.scope === "highValue" ? 3 : 4;
+
+        if (params.ransom) {
+          return beginAgeRansom(room, threshold, Number(params.ransom));
+        }
+
         room.players.forEach((player) => {
           for (let index = player.board.length - 1; index >= 0; index -= 1) {
             const card = player.board[index];
@@ -2164,6 +2314,8 @@ function applyAgeEffect(room) {
       room.players.forEach((player) => applyEffect(room, player, effect, age));
       break;
   }
+
+  return false;
 }
 
 function revealAge(room) {
@@ -2185,7 +2337,12 @@ function revealAge(room) {
   }
 
   setCurrentPlayer(room, currentTurnOrder(room)[0]);
-  applyAgeEffect(room);
+  const pendingAgeChoice = applyAgeEffect(room);
+
+  if (pendingAgeChoice || room.pendingChoice) {
+    return;
+  }
+
   beginTurn(room);
 }
 
@@ -2496,6 +2653,29 @@ function isEffectlessTrait(card) {
   return !passiveType || passiveType === "noEffect";
 }
 
+function stabilizeActivePlayer(room, player) {
+  if (!player || player.flags.noDrawThisAge) {
+    return;
+  }
+
+  const fixedHand = ageRules(room).endWithHandSize;
+
+  if (fixedHand != null) {
+    const needed = Math.max(0, Number(fixedHand) - player.hand.length);
+
+    if (needed) {
+      drawCard(room, player, needed);
+      addLog(room, `${player.name} drew up to ${fixedHand} cards for this Age.`, player.id);
+    }
+  } else {
+    const drawn = drawToHandSize(room, player);
+
+    if (drawn) {
+      addLog(room, `${player.name} drew back up toward their Gene Pool (${handLimitFor(player)}).`, player.id);
+    }
+  }
+}
+
 function continueAfterActionCleanup(room) {
   if (room.pendingChoice) {
     return;
@@ -2503,44 +2683,35 @@ function continueAfterActionCleanup(room) {
 
   const player = currentPlayer(room);
 
+  // The player still has Traits to play this turn; wait for their next action
+  // before drawing back up (stabilizing).
+  if (room.turnState && room.turnState.playsRemaining > 0) {
+    return;
+  }
+
+  if (player && room.turnState && !room.turnState.lateWindow && player.hand.some(isLate)) {
+    room.turnState.lateWindow = true;
+    room.turnState.playsRemaining = 1;
+    addLog(room, `${player.name} may play a Late Trait or pass.`);
+    return;
+  }
+
+  // Stabilize once, at the very end of the turn: draw back up to the Gene Pool.
+  if (room.turnState && !room.turnState.stabilized) {
+    room.turnState.stabilized = true;
+    stabilizeActivePlayer(room, player);
+  }
+
   if (queueHandLimitDiscard(room, player, { finishAfterChoice: "actionCleanup" })) {
     return;
   }
 
-  if (room.turnState?.playsRemaining <= 0) {
-    if (player && !room.turnState.lateWindow && player.hand.some(isLate)) {
-      room.turnState.lateWindow = true;
-      room.turnState.playsRemaining = 1;
-      addLog(room, `${player.name} may play a Late Trait or pass.`);
-      return;
-    }
-
-    endTurn(room);
-  }
+  endTurn(room);
 }
 
 function completeAfterPlay(room, player) {
   if (!player || room.phase !== "playing") {
     return;
-  }
-
-  if (!player.flags.noDrawThisAge) {
-    const fixedHand = ageRules(room).endWithHandSize;
-
-    if (fixedHand != null) {
-      const needed = Math.max(0, Number(fixedHand) - player.hand.length);
-
-      if (needed) {
-        drawCard(room, player, needed);
-        addLog(room, `${player.name} drew up to ${fixedHand} cards for this Age.`, player.id);
-      }
-    } else {
-      const drawn = drawToHandSize(room, player);
-
-      if (drawn) {
-        addLog(room, `${player.name} drew back up toward their Gene Pool (${handLimitFor(player)}).`, player.id);
-      }
-    }
   }
 
   continueAfterActionCleanup(room);
@@ -2667,7 +2838,7 @@ function skipTurn(room, playerId) {
       room.turnState.playsRemaining = 0;
       room.turnState.allowedColors = null;
       addLog(room, `${player.name} passed their remaining play${passedPlays === 1 ? "" : "s"}.`);
-      endTurn(room);
+      continueAfterActionCleanup(room);
       return;
     }
 
@@ -2699,7 +2870,7 @@ function passLate(room, playerId) {
 
   addLog(room, `${player.name} passed the Late window.`);
   room.turnState.playsRemaining = 0;
-  endTurn(room);
+  continueAfterActionCleanup(room);
 }
 
 function resolveChoice(room, playerId, choiceId, optionId) {
@@ -2741,6 +2912,9 @@ function resolveChoice(room, playerId, choiceId, optionId) {
     case "handLimitDiscard":
       followup = applyHandLimitDiscardChoice(room, choice, option, actor);
       break;
+    case "ageRansom":
+      followup = applyAgeRansomChoice(room, choice, option, actor);
+      break;
     case "publicTrait":
       followup = applyPublicTraitChoice(room, choice, option, actor);
       break;
@@ -2777,6 +2951,11 @@ function resolveChoice(room, playerId, choiceId, optionId) {
 
   if (choice.finishAfterChoice === "stabilize") {
     completeStabilize(room);
+    return;
+  }
+
+  if (choice.finishAfterChoice === "ageReveal") {
+    beginTurn(room);
     return;
   }
 
@@ -3221,6 +3400,21 @@ function decorateChoiceOption(room, choice, option, viewerId) {
   }
 
   if (choice.type === "handLimitDiscard") {
+    const actor = findPlayer(room, choice.actorId);
+    const card = actor?.hand.find((candidate) => candidate.instanceId === option.cardInstanceId);
+    return card
+      ? {
+          id: option.id,
+          card: decorateCard(room, card)
+        }
+      : null;
+  }
+
+  if (choice.type === "ageRansom") {
+    if (choice.mode === "decide") {
+      return { id: option.id, label: option.label || "Choose" };
+    }
+
     const actor = findPlayer(room, choice.actorId);
     const card = actor?.hand.find((candidate) => candidate.instanceId === option.cardInstanceId);
     return card
