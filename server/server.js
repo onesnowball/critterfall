@@ -4,6 +4,7 @@ const http = require("http");
 const os = require("os");
 const path = require("path");
 const { Server } = require("socket.io");
+const { AGE_CARDS, COLORS, TRAIT_CARDS } = require("./cards");
 const {
   createRoom,
   discardCard,
@@ -46,6 +47,14 @@ app.use(express.json());
 
 app.get("/health", (_request, response) => {
   response.json({ ok: true });
+});
+
+app.get("/api/catalog", (_request, response) => {
+  response.json({
+    colors: COLORS,
+    ages: AGE_CARDS,
+    traits: TRAIT_CARDS
+  });
 });
 
 app.use(express.static(clientDistPath));

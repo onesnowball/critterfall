@@ -2,17 +2,17 @@
   "game": "Critterfall",
   "version": "0.1-design",
   "colors": [
-    "Body",
-    "Predatory",
-    "Social",
-    "Weird"
+    "Green",
+    "Red",
+    "Blue",
+    "Purple"
   ],
   "traits": [
     {
       "id": "t001",
       "name": "Spare Heart",
       "emoji": "❤️‍🩹",
-      "color": "Body",
+      "color": "Green",
       "points": 2,
       "keywords": [
         "Dominant"
@@ -34,7 +34,7 @@
       "id": "t002",
       "name": "Backup Kidney",
       "emoji": "🫘",
-      "color": "Body",
+      "color": "Green",
       "points": 1,
       "keywords": [],
       "text": "When an Age Stabilizes, if you have 0 cards in hand, draw 1.",
@@ -56,7 +56,7 @@
       "id": "t003",
       "name": "Elastic Stomach",
       "emoji": "🎈",
-      "color": "Body",
+      "color": "Green",
       "points": 1,
       "keywords": [],
       "text": "Your Gene Pool is +3 while this is in your Trait Row. End: +1 for every 3 cards in hand.",
@@ -81,23 +81,31 @@
       "id": "t004",
       "name": "Redundant Lung",
       "emoji": "🫁",
-      "color": "Body",
+      "color": "Green",
       "points": 2,
       "keywords": [
         "Dominant"
       ],
-      "text": "Dominant.",
+      "text": "Dominant. When an Age stabilizes, if you have fewer than 2 cards in hand, draw 1.",
       "immediateEffect": null,
       "endEffect": null,
-      "passiveEffect": null,
+      "passiveEffect": {
+        "type": "draw",
+        "params": {
+          "count": 1,
+          "trigger": "onStabilize",
+          "condition": "lowHand2",
+          "fallback": "self"
+        }
+      },
       "quantity": 1,
-      "designNotes": "Plain Dominant body block; low tempo, safe points."
+      "designNotes": "Dominant hand recovery."
     },
     {
       "id": "t005",
       "name": "Overclocked Spleen",
       "emoji": "🩸",
-      "color": "Body",
+      "color": "Green",
       "points": 1,
       "keywords": [],
       "text": "Immediate: draw 2, then discard 1.",
@@ -117,7 +125,7 @@
       "id": "t006",
       "name": "Gastric Furnace",
       "emoji": "🔥",
-      "color": "Body",
+      "color": "Green",
       "points": 0,
       "keywords": [],
       "text": "Immediate: discard 1 to draw 2.",
@@ -143,7 +151,7 @@
       "id": "t007",
       "name": "Blubber Reserve",
       "emoji": "🐳",
-      "color": "Body",
+      "color": "Green",
       "points": 3,
       "keywords": [],
       "text": "Survives cold or freezing Ages.",
@@ -162,7 +170,7 @@
       "id": "t008",
       "name": "Chitin Plating",
       "emoji": "🛡️",
-      "color": "Body",
+      "color": "Green",
       "points": 1,
       "keywords": [
         "Dominant"
@@ -183,7 +191,7 @@
       "id": "t009",
       "name": "Regrowth Node",
       "emoji": "🌱",
-      "color": "Body",
+      "color": "Green",
       "points": 1,
       "keywords": [
         "Late"
@@ -205,23 +213,29 @@
       "id": "t010",
       "name": "Ossified Skull",
       "emoji": "🦴",
-      "color": "Body",
+      "color": "Green",
       "points": 2,
       "keywords": [
         "Dominant"
       ],
-      "text": "Dominant.",
+      "text": "Dominant. End: +2 if this is still in your Trait Row.",
       "immediateEffect": null,
-      "endEffect": null,
+      "endEffect": {
+        "type": "scoreIfCondition",
+        "params": {
+          "cond": "always",
+          "amount": 2
+        }
+      },
       "passiveEffect": null,
       "quantity": 1,
-      "designNotes": "Cheap Dominant points, no upside."
+      "designNotes": "Dominant endgame anchor."
     },
     {
       "id": "t011",
       "name": "Bioluminescent Liver",
       "emoji": "💡",
-      "color": "Body",
+      "color": "Green",
       "points": 1,
       "keywords": [],
       "text": "Passive: your hand is protected from reveal effects.",
@@ -240,7 +254,7 @@
       "id": "t012",
       "name": "Vestigial Tail",
       "emoji": "🦖",
-      "color": "Body",
+      "color": "Green",
       "points": 0,
       "keywords": [],
       "text": "End: +2 if this is at the far left or far right of your Trait Row.",
@@ -260,28 +274,28 @@
       "id": "t013",
       "name": "Prehensile Gut",
       "emoji": "🧶",
-      "color": "Body",
+      "color": "Green",
       "points": 1,
       "keywords": [],
-      "text": "Immediate: play an extra Body Trait this turn.",
+      "text": "Immediate: play an extra Green Trait this turn.",
       "immediateEffect": {
         "type": "playExtra",
         "params": {
           "count": 1,
-          "restrictColor": "Body",
+          "restrictColor": "Green",
           "fallback": "self"
         }
       },
       "endEffect": null,
       "passiveEffect": null,
       "quantity": 1,
-      "designNotes": "Body combo enabler."
+      "designNotes": "Green combo enabler."
     },
     {
       "id": "t014",
       "name": "Fat Storage Sac",
       "emoji": "🧈",
-      "color": "Body",
+      "color": "Green",
       "points": 1,
       "keywords": [],
       "text": "End: +1 for each card in your discard pile you own, max +4.",
@@ -295,13 +309,13 @@
       },
       "passiveEffect": null,
       "quantity": 1,
-      "designNotes": "Bridges Body into discard scoring."
+      "designNotes": "Bridges Green into discard scoring."
     },
     {
       "id": "t015",
       "name": "Nictitating Membrane",
       "emoji": "👁️",
-      "color": "Body",
+      "color": "Green",
       "points": 1,
       "keywords": [
         "Dominant"
@@ -322,7 +336,7 @@
       "id": "t016",
       "name": "Corrosion-Proof Skin",
       "emoji": "🧪",
-      "color": "Body",
+      "color": "Green",
       "points": 2,
       "keywords": [
         "Dominant"
@@ -343,7 +357,7 @@
       "id": "t017",
       "name": "Tardigrade Mode",
       "emoji": "🐻",
-      "color": "Body",
+      "color": "Green",
       "points": -1,
       "keywords": [
         "Dominant"
@@ -370,7 +384,7 @@
       "id": "t018",
       "name": "Antifreeze Blood",
       "emoji": "❄️",
-      "color": "Body",
+      "color": "Green",
       "points": 1,
       "keywords": [],
       "text": "Survives freezing Ages. Immediate: draw 1.",
@@ -390,7 +404,7 @@
       "id": "t019",
       "name": "Extra Ribcage",
       "emoji": "🩻",
-      "color": "Body",
+      "color": "Green",
       "points": 2,
       "keywords": [],
       "text": "Passive: the second time a Trait of yours would be destroyed, block it.",
@@ -410,30 +424,30 @@
       "id": "t020",
       "name": "Marrow Vault",
       "emoji": "🏦",
-      "color": "Body",
+      "color": "Green",
       "points": 1,
       "keywords": [],
-      "text": "End: +1 for every 2 Body Traits you control.",
+      "text": "End: +1 for every 2 Green Traits you control.",
       "immediateEffect": null,
       "endEffect": {
         "type": "scoreIfCondition",
         "params": {
-          "per": "ownColorBody2",
+          "per": "ownColorGreen2",
           "amount": 1
         }
       },
       "passiveEffect": null,
       "quantity": 1,
-      "designNotes": "Body-tribal payoff."
+      "designNotes": "Green-color payoff."
     },
     {
       "id": "t021",
       "name": "Runaway Growth",
       "emoji": "📈",
-      "color": "Body",
+      "color": "Green",
       "points": 2,
       "keywords": [],
-      "text": "Immediate: increase your Gene Pool by 1. End: +1 for each OTHER Body Trait you control.",
+      "text": "Immediate: increase your Gene Pool by 1. End: +1 for each other Green Trait you control.",
       "immediateEffect": {
         "type": "modifyGenePool",
         "params": {
@@ -443,19 +457,19 @@
       "endEffect": {
         "type": "scoreIfCondition",
         "params": {
-          "per": "otherColorBody",
+          "per": "otherColorGreen",
           "amount": 1
         }
       },
       "passiveEffect": null,
       "quantity": 1,
-      "designNotes": "Gene Pool ramp plus Body-tribal payoff."
+      "designNotes": "Gene Pool ramp plus Green-color payoff."
     },
     {
       "id": "t022",
       "name": "Gene Boom",
       "emoji": "💥",
-      "color": "Body",
+      "color": "Green",
       "points": 4,
       "keywords": [],
       "text": "Immediate: increase your Gene Pool by 2, then draw 2. High points, no defense.",
@@ -480,23 +494,29 @@
       "id": "t023",
       "name": "Callus Armor",
       "emoji": "🦶",
-      "color": "Body",
+      "color": "Green",
       "points": 1,
       "keywords": [
         "Dominant"
       ],
-      "text": "Dominant.",
+      "text": "Dominant. The first time poison would affect one of your Traits, ignore it.",
       "immediateEffect": null,
       "endEffect": null,
-      "passiveEffect": null,
+      "passiveEffect": {
+        "type": "dominantProtection",
+        "params": {
+          "against": "poison",
+          "consumes": true
+        }
+      },
       "quantity": 1,
-      "designNotes": "Filler Dominant, keeps Dominant count healthy."
+      "designNotes": "Dominant poison shield."
     },
     {
       "id": "t024",
       "name": "Third Eyelid",
       "emoji": "🫥",
-      "color": "Body",
+      "color": "Green",
       "points": 1,
       "keywords": [],
       "text": "Passive: you may look at the top card of the draw pile before your turn.",
@@ -515,7 +535,7 @@
       "id": "t025",
       "name": "Molting Coat",
       "emoji": "🧥",
-      "color": "Body",
+      "color": "Green",
       "points": 0,
       "keywords": [],
       "text": "Immediate: destroy one of your own Traits, then draw 2.",
@@ -540,10 +560,10 @@
       "id": "t026",
       "name": "Sasquatch Physique",
       "emoji": "🦍",
-      "color": "Body",
+      "color": "Green",
       "points": 5,
       "keywords": [],
-      "text": "Highest-point Body Trait. Cannot use its own effect.",
+      "text": "Highest-point Green Trait. Cannot use its own effect.",
       "immediateEffect": null,
       "endEffect": null,
       "passiveEffect": null,
@@ -554,7 +574,7 @@
       "id": "t027",
       "name": "Ambush Fangs",
       "emoji": "🦷",
-      "color": "Predatory",
+      "color": "Red",
       "points": 1,
       "keywords": [],
       "text": "Immediate: destroy the lowest-point non-Dominant Trait of the opponent with the most Trait points.",
@@ -574,7 +594,7 @@
       "id": "t028",
       "name": "Kleptomandible",
       "emoji": "🦞",
-      "color": "Predatory",
+      "color": "Red",
       "points": 1,
       "keywords": [],
       "text": "Immediate: steal a random card from the hand of the opponent with the most cards.",
@@ -594,7 +614,7 @@
       "id": "t029",
       "name": "Sticky Tongue",
       "emoji": "👅",
-      "color": "Predatory",
+      "color": "Red",
       "points": 1,
       "keywords": [],
       "text": "Immediate: steal a chosen non-Dominant Trait from a public Trait Row.",
@@ -614,7 +634,7 @@
       "id": "t030",
       "name": "Neurotoxin Sac",
       "emoji": "☠️",
-      "color": "Predatory",
+      "color": "Red",
       "points": 1,
       "keywords": [],
       "text": "Immediate: poison a non-Dominant Trait; it is destroyed at the next Stabilize.",
@@ -634,10 +654,10 @@
       "id": "t031",
       "name": "Delayed Venom",
       "emoji": "⏱️",
-      "color": "Predatory",
+      "color": "Red",
       "points": 0,
       "keywords": [],
-      "text": "Immediate: poison the highest-point non-Dominant Trait in play. It dies in TWO Stabilizes.",
+      "text": "Immediate: poison the highest-point non-Dominant Trait in play. It dies in two Stabilizes.",
       "immediateEffect": {
         "type": "delayedPoison",
         "params": {
@@ -655,7 +675,7 @@
       "id": "t032",
       "name": "Pickpocket Palps",
       "emoji": "🤏",
-      "color": "Predatory",
+      "color": "Red",
       "points": 1,
       "keywords": [],
       "text": "Immediate: steal 1 random card from the next opponent's hand.",
@@ -675,7 +695,7 @@
       "id": "t033",
       "name": "Bone Saw Claw",
       "emoji": "🪚",
-      "color": "Predatory",
+      "color": "Red",
       "points": 2,
       "keywords": [],
       "text": "Immediate: destroy the most recently played non-Dominant Trait in play.",
@@ -695,7 +715,7 @@
       "id": "t034",
       "name": "Acid Spit",
       "emoji": "🧫",
-      "color": "Predatory",
+      "color": "Red",
       "points": 0,
       "keywords": [],
       "text": "Immediate: destroy a random non-Dominant Trait and send it to its owner's discard.",
@@ -716,7 +736,7 @@
       "id": "t035",
       "name": "Heartbreaker",
       "emoji": "💔",
-      "color": "Predatory",
+      "color": "Red",
       "points": 1,
       "keywords": [],
       "text": "Immediate: destroy a target's Spare Heart or Extra Ribcage if it has one; otherwise destroy its most recent non-Dominant Trait.",
@@ -740,7 +760,7 @@
       "id": "t036",
       "name": "Death Roll",
       "emoji": "🐊",
-      "color": "Predatory",
+      "color": "Red",
       "points": 2,
       "keywords": [],
       "text": "Immediate: destroy the highest-point non-Dominant Trait of the opponent with the most points.",
@@ -760,7 +780,7 @@
       "id": "t037",
       "name": "Cannibal Reflex",
       "emoji": "😈",
-      "color": "Predatory",
+      "color": "Red",
       "points": 0,
       "keywords": [],
       "text": "Immediate: destroy one of your own Traits; steal a random Trait from any opponent.",
@@ -786,10 +806,10 @@
       "id": "t038",
       "name": "Territorial Roar",
       "emoji": "🦁",
-      "color": "Predatory",
+      "color": "Red",
       "points": 1,
       "keywords": [],
-      "text": "Immediate: every opponent discards 1 random card from hand.",
+      "text": "Immediate: choose 1 face-down card from each opponent. Discard each chosen card.",
       "immediateEffect": {
         "type": "discardRandomOpponent",
         "params": {
@@ -806,7 +826,7 @@
       "id": "t039",
       "name": "Marrow Thief",
       "emoji": "🪦",
-      "color": "Predatory",
+      "color": "Red",
       "points": 1,
       "keywords": [],
       "text": "Immediate: steal the most recent card from the largest discard pile.",
@@ -827,7 +847,7 @@
       "id": "t040",
       "name": "Gene Splicer",
       "emoji": "🧬",
-      "color": "Predatory",
+      "color": "Red",
       "points": 2,
       "keywords": [],
       "text": "Immediate: steal a random Trait, then copy its immediate effect.",
@@ -851,7 +871,7 @@
       "id": "t041",
       "name": "Apex Ambusher",
       "emoji": "🐆",
-      "color": "Predatory",
+      "color": "Red",
       "points": 3,
       "keywords": [],
       "text": "Immediate: skip the next player's turn.",
@@ -870,7 +890,7 @@
       "id": "t042",
       "name": "Toxic Molt",
       "emoji": "🐍",
-      "color": "Predatory",
+      "color": "Red",
       "points": -1,
       "keywords": [],
       "text": "When this is destroyed, poison a random opponent Trait.",
@@ -891,7 +911,7 @@
       "id": "t043",
       "name": "Beak Full of Debt",
       "emoji": "🪙",
-      "color": "Predatory",
+      "color": "Red",
       "points": 1,
       "keywords": [],
       "text": "End: the opponent with the most points scores -2. You score +1.",
@@ -913,7 +933,7 @@
       "id": "t044",
       "name": "Gene Pool Drain",
       "emoji": "🕳️",
-      "color": "Predatory",
+      "color": "Red",
       "points": 0,
       "keywords": [],
       "text": "Immediate: decrease the point leader's Gene Pool by 1, then destroy one of their non-Dominant Traits.",
@@ -940,7 +960,7 @@
       "id": "t045",
       "name": "Poison Dart Skin",
       "emoji": "🐸",
-      "color": "Predatory",
+      "color": "Red",
       "points": 1,
       "keywords": [
         "Dominant"
@@ -963,7 +983,7 @@
       "id": "t046",
       "name": "Backstab Stinger",
       "emoji": "🗡️",
-      "color": "Predatory",
+      "color": "Red",
       "points": 1,
       "keywords": [
         "Late"
@@ -986,7 +1006,7 @@
       "id": "t047",
       "name": "Rot Touch",
       "emoji": "🍂",
-      "color": "Predatory",
+      "color": "Red",
       "points": 0,
       "keywords": [],
       "text": "Immediate: destroy the single lowest-point Trait in the whole game.",
@@ -1006,7 +1026,7 @@
       "id": "t048",
       "name": "Fang Tax",
       "emoji": "💸",
-      "color": "Predatory",
+      "color": "Red",
       "points": 1,
       "keywords": [],
       "text": "Immediate: each opponent gives you 1 card or discards 2 (server auto-picks the worse for them).",
@@ -1027,7 +1047,7 @@
       "id": "t049",
       "name": "Culling Instinct",
       "emoji": "🌗",
-      "color": "Predatory",
+      "color": "Red",
       "points": 2,
       "keywords": [],
       "text": "Immediate: if any opponent has more Traits than you, destroy one of their non-Dominant Traits.",
@@ -1048,7 +1068,7 @@
       "id": "t050",
       "name": "Constrictor Coil",
       "emoji": "🐲",
-      "color": "Predatory",
+      "color": "Red",
       "points": 1,
       "keywords": [],
       "text": "Immediate: the next opponent skips their draw next turn.",
@@ -1068,15 +1088,15 @@
       "id": "t051",
       "name": "Hive Mind",
       "emoji": "🐝",
-      "color": "Social",
+      "color": "Blue",
       "points": 1,
       "keywords": [],
-      "text": "End: +1 for each other Social Trait you control.",
+      "text": "End: +1 for each other Blue Trait you control.",
       "immediateEffect": null,
       "endEffect": {
         "type": "scoreIfCondition",
         "params": {
-          "per": "otherColorSocial",
+          "per": "otherColorBlue",
           "amount": 1
         }
       },
@@ -1088,14 +1108,14 @@
       "id": "t052",
       "name": "Larval Cloud",
       "emoji": "🐛",
-      "color": "Social",
+      "color": "Blue",
       "points": 0,
       "keywords": [],
-      "text": "Immediate: increase your Gene Pool by 1 for every 2 Social Traits you control, max +3; then draw 1.",
+      "text": "Immediate: increase your Gene Pool by 1 for every 2 Blue Traits you control, max +3; then draw 1.",
       "immediateEffect": {
         "type": "modifyGenePool",
         "params": {
-          "amount": "socialCount2",
+          "amount": "blueCount2",
           "max": 3,
           "then": {
             "type": "draw",
@@ -1114,14 +1134,14 @@
       "id": "t053",
       "name": "Bite Choir",
       "emoji": "🎶",
-      "color": "Social",
+      "color": "Blue",
       "points": 1,
       "keywords": [],
-      "text": "Immediate: if you control 3+ Social Traits, every opponent discards 1.",
+      "text": "Immediate: if you control 3+ Blue Traits, each opponent discards 1 card.",
       "immediateEffect": {
         "type": "discardRandomOpponent",
         "params": {
-          "condition": "ownSocial3",
+          "condition": "ownBlue3",
           "target": "allOpponents",
           "count": 1
         }
@@ -1135,15 +1155,15 @@
       "id": "t054",
       "name": "Locust Bloom",
       "emoji": "🦗",
-      "color": "Social",
+      "color": "Blue",
       "points": 2,
       "keywords": [],
-      "text": "End: +1 per Social Trait across ALL Trait Rows, max +5.",
+      "text": "End: +1 per Blue Trait across all Trait Rows, max +5.",
       "immediateEffect": null,
       "endEffect": {
         "type": "scoreForUniqueColors",
         "params": {
-          "countColor": "Social",
+          "countColor": "Blue",
           "scope": "all",
           "max": 5
         }
@@ -1156,7 +1176,7 @@
       "id": "t055",
       "name": "Mimic Octopus",
       "emoji": "🐙",
-      "color": "Social",
+      "color": "Blue",
       "points": 1,
       "keywords": [],
       "text": "Immediate: copy the immediate effect of any Trait already in play.",
@@ -1176,7 +1196,7 @@
       "id": "t056",
       "name": "Cuckoo Egg",
       "emoji": "🥚",
-      "color": "Social",
+      "color": "Blue",
       "points": -2,
       "keywords": [
         "Parasite"
@@ -1198,7 +1218,7 @@
       "id": "t057",
       "name": "Peer Pressure",
       "emoji": "🫂",
-      "color": "Social",
+      "color": "Blue",
       "points": 1,
       "keywords": [],
       "text": "Immediate: the next opponent must discard their highest-point card in hand (server picks).",
@@ -1218,7 +1238,7 @@
       "id": "t058",
       "name": "Symbiote Handshake",
       "emoji": "🤝",
-      "color": "Social",
+      "color": "Blue",
       "points": 1,
       "keywords": [],
       "text": "Immediate: you and the opponent with the fewest points each draw 1.",
@@ -1238,7 +1258,7 @@
       "id": "t059",
       "name": "Pheromone Trail",
       "emoji": "🌸",
-      "color": "Social",
+      "color": "Blue",
       "points": 1,
       "keywords": [],
       "text": "Immediate: reverse turn order.",
@@ -1255,7 +1275,7 @@
       "id": "t060",
       "name": "Waggle Dance",
       "emoji": "💃",
-      "color": "Social",
+      "color": "Blue",
       "points": 1,
       "keywords": [],
       "text": "Immediate: choose who takes the next turn (default: player with fewest Traits).",
@@ -1275,7 +1295,7 @@
       "id": "t061",
       "name": "Chameleon Coat",
       "emoji": "🦎",
-      "color": "Social",
+      "color": "Blue",
       "points": 1,
       "keywords": [],
       "text": "Passive: this counts as the color of the Trait to its immediate left.",
@@ -1294,10 +1314,10 @@
       "id": "t062",
       "name": "Angry Professor",
       "emoji": "👨‍🏫",
-      "color": "Social",
+      "color": "Blue",
       "points": 1,
       "keywords": [],
-      "text": "Immediate: every opponent discards 1 random card. 'Revise and resubmit.'",
+      "text": "Immediate: choose 1 face-down card from each opponent. Discard each chosen card. Revise and resubmit.",
       "immediateEffect": {
         "type": "discardRandomOpponent",
         "params": {
@@ -1314,10 +1334,10 @@
       "id": "t063",
       "name": "Asian Parent",
       "emoji": "🩴",
-      "color": "Social",
+      "color": "Blue",
       "points": 0,
       "keywords": [],
-      "text": "End: if you have the MOST Trait points, +5. If not, -2. 'Why not 100%?'",
+      "text": "End: if you have the most Trait points, +5. Otherwise, -2.",
       "immediateEffect": null,
       "endEffect": {
         "type": "scoreIfCondition",
@@ -1335,10 +1355,10 @@
       "id": "t064",
       "name": "Group Project",
       "emoji": "📚",
-      "color": "Social",
+      "color": "Blue",
       "points": 1,
       "keywords": [],
-      "text": "Immediate: swap 1 random card with the opponent who has the most cards. 'Someone did no work.'",
+      "text": "Immediate: swap 1 face-down card with the opponent who has the most cards in hand.",
       "immediateEffect": {
         "type": "stealRandom",
         "params": {
@@ -1356,7 +1376,7 @@
       "id": "t065",
       "name": "Gossip Web",
       "emoji": "🕸️",
-      "color": "Social",
+      "color": "Blue",
       "points": 1,
       "keywords": [],
       "text": "Immediate: reveal the full hand (with card text) of the point leader to everyone.",
@@ -1375,7 +1395,7 @@
       "id": "t066",
       "name": "Snitch",
       "emoji": "🐀",
-      "color": "Social",
+      "color": "Blue",
       "points": 0,
       "keywords": [],
       "text": "Immediate: reveal an opponent's hand, then steal 1 named card from it.",
@@ -1401,7 +1421,7 @@
       "id": "t067",
       "name": "Tiny Violin",
       "emoji": "🎻",
-      "color": "Social",
+      "color": "Blue",
       "points": 1,
       "keywords": [],
       "text": "Passive: whenever an opponent loses a Trait, draw 1. 'So sad.'",
@@ -1422,7 +1442,7 @@
       "id": "t068",
       "name": "Conga Line",
       "emoji": "🎉",
-      "color": "Social",
+      "color": "Blue",
       "points": 1,
       "keywords": [],
       "text": "Immediate: reverse turn order AND skip the new next player.",
@@ -1446,7 +1466,7 @@
       "id": "t069",
       "name": "Rumor Mill",
       "emoji": "📢",
-      "color": "Social",
+      "color": "Blue",
       "points": -1,
       "keywords": [
         "Parasite"
@@ -1469,7 +1489,7 @@
       "id": "t070",
       "name": "Nepotism",
       "emoji": "👔",
-      "color": "Social",
+      "color": "Blue",
       "points": 2,
       "keywords": [],
       "text": "Immediate: if the Trait to your left shares this color, play an extra Trait.",
@@ -1490,7 +1510,7 @@
       "id": "t071",
       "name": "Groupthink",
       "emoji": "🧠",
-      "color": "Social",
+      "color": "Blue",
       "points": 1,
       "keywords": [],
       "text": "Immediate: copy the immediate effect of the last Trait played by any player this turn.",
@@ -1511,7 +1531,7 @@
       "id": "t072",
       "name": "Molt Party",
       "emoji": "🎊",
-      "color": "Social",
+      "color": "Blue",
       "points": 0,
       "keywords": [],
       "text": "Immediate: every player (including you) discards 1, then draws 1.",
@@ -1537,12 +1557,12 @@
       "id": "t073",
       "name": "Cuckoo Chorus",
       "emoji": "🐦",
-      "color": "Social",
+      "color": "Blue",
       "points": -1,
       "keywords": [
         "Parasite"
       ],
-      "text": "Parasite. Host scores -1; you score +1 for each parasite you've placed.",
+      "text": "Parasite. Host scores -1. End: +1 for each Parasite you placed.",
       "immediateEffect": {
         "type": "placeParasite",
         "params": {
@@ -1564,15 +1584,15 @@
       "id": "t074",
       "name": "Flash Mob",
       "emoji": "🕺",
-      "color": "Social",
+      "color": "Blue",
       "points": 2,
       "keywords": [],
-      "text": "Immediate: play an extra Social Trait this turn.",
+      "text": "Immediate: play an extra Blue Trait this turn.",
       "immediateEffect": {
         "type": "playExtra",
         "params": {
           "count": 1,
-          "restrictColor": "Social",
+          "restrictColor": "Blue",
           "fallback": "self"
         }
       },
@@ -1585,27 +1605,27 @@
       "id": "t075",
       "name": "Junk DNA",
       "emoji": "🧷",
-      "color": "Weird",
+      "color": "Purple",
       "points": 0,
       "keywords": [],
-      "text": "End: +1 for each other Weird Trait you control.",
+      "text": "End: +1 for each other Purple Trait you control.",
       "immediateEffect": null,
       "endEffect": {
         "type": "scoreIfCondition",
         "params": {
-          "per": "otherColorWeird",
+          "per": "otherColorPurple",
           "amount": 1
         }
       },
       "passiveEffect": null,
       "quantity": 1,
-      "designNotes": "Weird-tribal filler payoff."
+      "designNotes": "Purple-color filler payoff."
     },
     {
       "id": "t076",
       "name": "Retrovirus",
       "emoji": "🦠",
-      "color": "Weird",
+      "color": "Purple",
       "points": 1,
       "keywords": [],
       "text": "Immediate: play a Trait from any discard pile as if it were yours.",
@@ -1626,7 +1646,7 @@
       "id": "t077",
       "name": "Horizontal Gene Transfer",
       "emoji": "🔀",
-      "color": "Weird",
+      "color": "Purple",
       "points": 1,
       "keywords": [],
       "text": "Immediate: copy any non-Dominant Trait in play into your Trait Row (a token copy, 0 points).",
@@ -1647,7 +1667,7 @@
       "id": "t078",
       "name": "Frameshift",
       "emoji": "↩️",
-      "color": "Weird",
+      "color": "Purple",
       "points": 1,
       "keywords": [],
       "text": "Immediate: reverse turn order.",
@@ -1658,13 +1678,13 @@
       "endEffect": null,
       "passiveEffect": null,
       "quantity": 1,
-      "designNotes": "Second copy of order control in Weird."
+      "designNotes": "Second copy of order control in Purple."
     },
     {
       "id": "t079",
       "name": "Point Mutation",
       "emoji": "🎯",
-      "color": "Weird",
+      "color": "Purple",
       "points": 0,
       "keywords": [],
       "text": "Immediate: change the color of any one Trait in play (yours or theirs).",
@@ -1685,7 +1705,7 @@
       "id": "t080",
       "name": "Chaos Codon",
       "emoji": "🎲",
-      "color": "Weird",
+      "color": "Purple",
       "points": 1,
       "keywords": [],
       "text": "Immediate: trigger a random supported effect (server RNG).",
@@ -1705,7 +1725,7 @@
       "id": "t081",
       "name": "Time Loop",
       "emoji": "🔁",
-      "color": "Weird",
+      "color": "Purple",
       "points": 2,
       "keywords": [],
       "text": "Immediate: play one extra Trait this turn.",
@@ -1725,7 +1745,7 @@
       "id": "t082",
       "name": "Necrotic Bloom",
       "emoji": "🥀",
-      "color": "Weird",
+      "color": "Purple",
       "points": 1,
       "keywords": [],
       "text": "End: +1 for every 2 cards in your discard pile, max +5.",
@@ -1746,7 +1766,7 @@
       "id": "t083",
       "name": "Grave Robber",
       "emoji": "⚰️",
-      "color": "Weird",
+      "color": "Purple",
       "points": 1,
       "keywords": [],
       "text": "Immediate: revive any Trait from any discard pile into your Trait Row.",
@@ -1767,7 +1787,7 @@
       "id": "t084",
       "name": "Second Draft",
       "emoji": "📝",
-      "color": "Weird",
+      "color": "Purple",
       "points": 0,
       "keywords": [
         "Late"
@@ -1790,12 +1810,12 @@
       "id": "t085",
       "name": "Paradox Egg",
       "emoji": "🪺",
-      "color": "Weird",
+      "color": "Purple",
       "points": -1,
       "keywords": [
         "Late"
       ],
-      "text": "Late. When played, immediately take another turn.",
+      "text": "Late. Immediate: take another play this turn.",
       "immediateEffect": {
         "type": "playExtra",
         "params": {
@@ -1813,7 +1833,7 @@
       "id": "t086",
       "name": "Butterfly Effect",
       "emoji": "🦋",
-      "color": "Weird",
+      "color": "Purple",
       "points": 1,
       "keywords": [],
       "text": "Immediate: reverse turn order and every player passes 1 random card left.",
@@ -1837,7 +1857,7 @@
       "id": "t087",
       "name": "Schrodinger's Cell",
       "emoji": "📦",
-      "color": "Weird",
+      "color": "Purple",
       "points": 2,
       "keywords": [],
       "text": "End: flip a server coin — this is worth 5 or -1.",
@@ -1858,15 +1878,15 @@
       "id": "t088",
       "name": "Mutagen Bath",
       "emoji": "🛁",
-      "color": "Weird",
+      "color": "Purple",
       "points": 0,
       "keywords": [],
-      "text": "Immediate: every non-Dominant Trait in play becomes Weird until end of game.",
+      "text": "Immediate: every non-Dominant Trait in play becomes Purple until end of game.",
       "immediateEffect": {
         "type": "copyTrait",
         "params": {
           "aspect": "recolorAll",
-          "to": "Weird",
+          "to": "Purple",
           "target": "allPlayers"
         }
       },
@@ -1879,7 +1899,7 @@
       "id": "t089",
       "name": "Rewind Enzyme",
       "emoji": "⏪",
-      "color": "Weird",
+      "color": "Purple",
       "points": 1,
       "keywords": [],
       "text": "Immediate: return the most recently played non-Dominant Trait to its owner's hand.",
@@ -1900,7 +1920,7 @@
       "id": "t090",
       "name": "Fossil Record",
       "emoji": "🦕",
-      "color": "Weird",
+      "color": "Purple",
       "points": 2,
       "keywords": [],
       "text": "End: +1 for each unique color present in your discard pile.",
@@ -1919,7 +1939,7 @@
       "id": "t091",
       "name": "Doppelganger",
       "emoji": "👥",
-      "color": "Weird",
+      "color": "Purple",
       "points": 1,
       "keywords": [],
       "text": "Immediate: copy the passive effect of an opponent's Trait for the rest of the game.",
@@ -1940,7 +1960,7 @@
       "id": "t092",
       "name": "Prion Cascade",
       "emoji": "🧩",
-      "color": "Weird",
+      "color": "Purple",
       "points": -2,
       "keywords": [
         "Parasite"
@@ -1963,7 +1983,7 @@
       "id": "t093",
       "name": "Entropy Well",
       "emoji": "🌪️",
-      "color": "Weird",
+      "color": "Purple",
       "points": 0,
       "keywords": [],
       "text": "Immediate: every player destroys their own lowest-point non-Dominant Trait.",
@@ -1984,7 +2004,7 @@
       "id": "t094",
       "name": "Quantum Molt",
       "emoji": "🌀",
-      "color": "Weird",
+      "color": "Purple",
       "points": 1,
       "keywords": [
         "Late"
@@ -2006,7 +2026,7 @@
       "id": "t095",
       "name": "Recursive Larva",
       "emoji": "♾️",
-      "color": "Weird",
+      "color": "Purple",
       "points": 0,
       "keywords": [],
       "text": "Immediate: if you played a Trait earlier this turn, play another.",
@@ -2027,7 +2047,7 @@
       "id": "t096",
       "name": "Deja Vu",
       "emoji": "🔮",
-      "color": "Weird",
+      "color": "Purple",
       "points": 1,
       "keywords": [],
       "text": "Immediate: copy the effect of the current Age.",
@@ -2047,7 +2067,7 @@
       "id": "t097",
       "name": "Null Allele",
       "emoji": "0️⃣",
-      "color": "Weird",
+      "color": "Purple",
       "points": -3,
       "keywords": [
         "Dominant"
@@ -2072,7 +2092,7 @@
       "id": "t098",
       "name": "Glitch in the Germline",
       "emoji": "🐞",
-      "color": "Weird",
+      "color": "Purple",
       "points": 1,
       "keywords": [],
       "text": "Immediate: copy the immediate effect of the last Trait YOU played.",
@@ -2092,10 +2112,10 @@
       "id": "t099",
       "name": "Chow Mein",
       "emoji": "🍜",
-      "color": "Weird",
+      "color": "Purple",
       "points": 1,
       "keywords": [],
-      "text": "Passive: if adjacent to Orange Chicken, both score +3 at end (Combo Meal).",
+      "text": "End: if adjacent to Orange Chicken, +3.",
       "immediateEffect": null,
       "endEffect": null,
       "passiveEffect": {
@@ -2112,10 +2132,10 @@
       "id": "t100",
       "name": "Orange Chicken",
       "emoji": "🍗",
-      "color": "Body",
+      "color": "Green",
       "points": 1,
       "keywords": [],
-      "text": "Passive: if adjacent to Chow Mein, both score +3 at end (Combo Meal).",
+      "text": "End: if adjacent to Chow Mein, +3.",
       "immediateEffect": null,
       "endEffect": null,
       "passiveEffect": {
@@ -2132,7 +2152,7 @@
       "id": "t101",
       "name": "Kimchi Fried Rice",
       "emoji": "🍚",
-      "color": "Body",
+      "color": "Green",
       "points": 1,
       "keywords": [],
       "text": "Passive: +1 for each food Trait adjacent to it. Immune to poison (fermented).",
@@ -2152,7 +2172,7 @@
       "id": "t102",
       "name": "Boba",
       "emoji": "🧋",
-      "color": "Social",
+      "color": "Blue",
       "points": 0,
       "keywords": [],
       "text": "Immediate: draw 1. Passive: counts as a food Trait for Combo Meal.",
@@ -2177,7 +2197,7 @@
       "id": "t103",
       "name": "Spicy Ramen Challenge",
       "emoji": "🌶️",
-      "color": "Predatory",
+      "color": "Red",
       "points": 1,
       "keywords": [],
       "text": "Immediate: poison your own lowest Trait; if you survive to Stabilize, draw 3.",
@@ -2203,10 +2223,10 @@
       "id": "t104",
       "name": "Contrarian Gene",
       "emoji": "🙃",
-      "color": "Weird",
+      "color": "Purple",
       "points": 1,
       "keywords": [],
-      "text": "End: +5 if you have the FEWEST Trait points (excluding this).",
+      "text": "End: +5 if you have the fewest Trait points (excluding this).",
       "immediateEffect": null,
       "endEffect": {
         "type": "scoreForLowPoints",
@@ -2222,10 +2242,10 @@
       "id": "t105",
       "name": "Rainbow Chromosome",
       "emoji": "🌈",
-      "color": "Weird",
+      "color": "Purple",
       "points": 2,
       "keywords": [],
-      "text": "End: +2 for each of the 4 colors present in your Trait Row.",
+      "text": "End: +2 for each color present in your Trait Row.",
       "immediateEffect": null,
       "endEffect": {
         "type": "scoreForUniqueColors",
@@ -2242,7 +2262,7 @@
       "id": "t106",
       "name": "Sleeper Cell",
       "emoji": "💤",
-      "color": "Predatory",
+      "color": "Red",
       "points": 0,
       "keywords": [
         "Late"
@@ -2264,7 +2284,7 @@
       "id": "t107",
       "name": "Living Fossil",
       "emoji": "🐚",
-      "color": "Body",
+      "color": "Green",
       "points": 3,
       "keywords": [
         "Dominant"
@@ -2285,7 +2305,7 @@
       "id": "t108",
       "name": "Immortal Jellyfish",
       "emoji": "🪼",
-      "color": "Body",
+      "color": "Green",
       "points": -1,
       "keywords": [
         "Dominant"
@@ -2307,7 +2327,7 @@
       "id": "t109",
       "name": "Tapeworm",
       "emoji": "🪱",
-      "color": "Predatory",
+      "color": "Red",
       "points": -2,
       "keywords": [
         "Parasite"
@@ -2330,7 +2350,7 @@
       "id": "t110",
       "name": "Zombie Ant Fungus",
       "emoji": "🍄",
-      "color": "Weird",
+      "color": "Purple",
       "points": -1,
       "keywords": [
         "Parasite",
@@ -2354,28 +2374,33 @@
       "id": "t111",
       "name": "Emotional Support Slime",
       "emoji": "🫧",
-      "color": "Social",
+      "color": "Blue",
       "points": 2,
       "keywords": [
         "Dominant"
       ],
-      "text": "Dominant.",
+      "text": "Dominant. End: +1 for each opponent with more Trait points than you.",
       "immediateEffect": null,
-      "endEffect": null,
+      "endEffect": {
+        "type": "scoreForBehindOpponents",
+        "params": {
+          "amount": 1
+        }
+      },
       "passiveEffect": null,
       "quantity": 1,
-      "designNotes": "Filler Dominant to keep count; safe points."
+      "designNotes": "Dominant comeback scoring."
     },
     {
       "id": "t112",
       "name": "Panic Spore",
       "emoji": "💨",
-      "color": "Weird",
+      "color": "Purple",
       "points": 0,
       "keywords": [
         "Late"
       ],
-      "text": "Late. Immediate: every opponent discards their highest-point card in hand.",
+      "text": "Late. Immediate: each opponent discards their highest-point card in hand.",
       "immediateEffect": {
         "type": "discardRandomOpponent",
         "params": {
@@ -2392,7 +2417,7 @@
       "id": "t113",
       "name": "Detritivore",
       "emoji": "🐌",
-      "color": "Body",
+      "color": "Green",
       "points": 1,
       "keywords": [],
       "text": "Immediate: play a Trait from your own discard pile.",
@@ -2412,7 +2437,7 @@
       "id": "t114",
       "name": "Necromancer Cell",
       "emoji": "🧟",
-      "color": "Weird",
+      "color": "Purple",
       "points": 0,
       "keywords": [],
       "text": "Immediate: revive an opponent's discarded Trait into your Trait Row.",
@@ -2433,7 +2458,7 @@
       "id": "t115",
       "name": "Bone Orchard",
       "emoji": "🌾",
-      "color": "Weird",
+      "color": "Purple",
       "points": 1,
       "keywords": [],
       "text": "End: +1 for each different card NAME in your discard pile, max 4.",
@@ -2453,7 +2478,7 @@
       "id": "t116",
       "name": "Regurgitation",
       "emoji": "↖️",
-      "color": "Body",
+      "color": "Green",
       "points": 0,
       "keywords": [],
       "text": "Immediate: return your most recent discard to hand, then draw 1.",
@@ -2480,7 +2505,7 @@
       "id": "t117",
       "name": "Scab Harvest",
       "emoji": "🩹",
-      "color": "Predatory",
+      "color": "Red",
       "points": 1,
       "keywords": [],
       "text": "Immediate: play the top card of the largest discard pile as your own.",
@@ -2501,10 +2526,10 @@
       "id": "t118",
       "name": "Carrion Beetle",
       "emoji": "🪲",
-      "color": "Social",
+      "color": "Blue",
       "points": 1,
       "keywords": [],
-      "text": "End: +1 for every 2 cards across ALL discard piles, max 5.",
+      "text": "End: +1 for every 2 cards across all discard piles, max 5.",
       "immediateEffect": null,
       "endEffect": {
         "type": "scoreForDiscardPile",
@@ -2523,7 +2548,7 @@
       "id": "t119",
       "name": "Deathbed Mutation",
       "emoji": "💀",
-      "color": "Weird",
+      "color": "Purple",
       "points": 0,
       "keywords": [
         "Late"
@@ -2545,7 +2570,7 @@
       "id": "t120",
       "name": "Botfly Larva",
       "emoji": "🪰",
-      "color": "Predatory",
+      "color": "Red",
       "points": -1,
       "keywords": [
         "Parasite"
@@ -2568,7 +2593,7 @@
       "id": "t121",
       "name": "Bloodsucker",
       "emoji": "🦟",
-      "color": "Predatory",
+      "color": "Red",
       "points": -1,
       "keywords": [
         "Parasite"
@@ -2591,7 +2616,7 @@
       "id": "t122",
       "name": "Mind-Control Vine",
       "emoji": "🌿",
-      "color": "Social",
+      "color": "Blue",
       "points": -1,
       "keywords": [
         "Parasite"
@@ -2614,7 +2639,7 @@
       "id": "t123",
       "name": "Cursed Gene",
       "emoji": "🧿",
-      "color": "Weird",
+      "color": "Purple",
       "points": -1,
       "keywords": [
         "Parasite"
@@ -2637,7 +2662,7 @@
       "id": "t124",
       "name": "Ichneumon Wasp",
       "emoji": "🦂",
-      "color": "Predatory",
+      "color": "Red",
       "points": -1,
       "keywords": [
         "Parasite",
@@ -2661,7 +2686,7 @@
       "id": "t125",
       "name": "Last Word",
       "emoji": "🎤",
-      "color": "Social",
+      "color": "Blue",
       "points": 1,
       "keywords": [
         "Late"
@@ -2684,7 +2709,7 @@
       "id": "t126",
       "name": "Nocturnal Strike",
       "emoji": "🌙",
-      "color": "Predatory",
+      "color": "Red",
       "points": 1,
       "keywords": [
         "Late"
@@ -2702,6 +2727,131 @@
       "passiveEffect": null,
       "quantity": 1,
       "designNotes": "Answers combos assembled during the Age."
+    },
+    {
+      "id": "t127",
+      "name": "Moss Patch",
+      "emoji": "🟩",
+      "color": "Green",
+      "points": 1,
+      "keywords": [],
+      "text": "Plain Trait.",
+      "quantity": 2,
+      "designNotes": "Simple face-value 1 Green card."
+    },
+    {
+      "id": "t128",
+      "name": "Iron Hide",
+      "emoji": "🛡️",
+      "color": "Green",
+      "points": 2,
+      "keywords": [],
+      "text": "Plain Trait.",
+      "quantity": 2,
+      "designNotes": "Simple face-value 2 Green card."
+    },
+    {
+      "id": "t129",
+      "name": "Red Claw",
+      "emoji": "🟥",
+      "color": "Red",
+      "points": 1,
+      "keywords": [],
+      "text": "Plain Trait.",
+      "quantity": 2,
+      "designNotes": "Simple face-value 1 Red card."
+    },
+    {
+      "id": "t130",
+      "name": "Razor Crest",
+      "emoji": "🦷",
+      "color": "Red",
+      "points": 2,
+      "keywords": [],
+      "text": "Plain Trait.",
+      "quantity": 2,
+      "designNotes": "Simple face-value 2 Red card."
+    },
+    {
+      "id": "t131",
+      "name": "Blue Signal",
+      "emoji": "🟦",
+      "color": "Blue",
+      "points": 1,
+      "keywords": [],
+      "text": "Plain Trait.",
+      "quantity": 2,
+      "designNotes": "Simple face-value 1 Blue card."
+    },
+    {
+      "id": "t132",
+      "name": "Echo Crest",
+      "emoji": "📣",
+      "color": "Blue",
+      "points": 2,
+      "keywords": [],
+      "text": "Plain Trait.",
+      "quantity": 2,
+      "designNotes": "Simple face-value 2 Blue card."
+    },
+    {
+      "id": "t133",
+      "name": "Purple Spark",
+      "emoji": "🟪",
+      "color": "Purple",
+      "points": 1,
+      "keywords": [],
+      "text": "Plain Trait.",
+      "quantity": 2,
+      "designNotes": "Simple face-value 1 Purple card."
+    },
+    {
+      "id": "t134",
+      "name": "Strange Echo",
+      "emoji": "🌀",
+      "color": "Purple",
+      "points": 2,
+      "keywords": [],
+      "text": "Plain Trait.",
+      "quantity": 2,
+      "designNotes": "Simple face-value 2 Purple card."
+    },
+    {
+      "id": "t135",
+      "name": "Counting Cilia",
+      "emoji": "🔢",
+      "color": "Blue",
+      "points": 1,
+      "keywords": [],
+      "text": "End: +1 for each face-value 1 Trait in your Trait Row.",
+      "endEffect": {
+        "type": "scoreForFaceValue",
+        "params": {
+          "value": 1,
+          "amount": 1
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Face-value 1 payoff."
+    },
+    {
+      "id": "t136",
+      "name": "Color Sprint",
+      "emoji": "🎨",
+      "color": "Purple",
+      "points": 0,
+      "keywords": [],
+      "text": "Immediate: play an extra Trait of this card's color.",
+      "immediateEffect": {
+        "type": "playExtra",
+        "params": {
+          "count": 1,
+          "sameColorAsSource": true,
+          "fallback": "self"
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Same-color extra play enabler."
     }
   ],
   "ages": [
@@ -2724,18 +2874,18 @@
       "id": "a002",
       "name": "Great Oxygenation",
       "emoji": "🫧",
-      "text": "Every player with 2+ Body Traits draws 1; others discard 1.",
+      "text": "Each player with 2+ Green Traits draws 1. Others discard 1.",
       "effect": {
         "type": "draw",
         "params": {
           "count": 1,
-          "condition": "ownBody2",
+          "condition": "ownGreen2",
           "elseDiscard": 1,
           "target": "allPlayers"
         }
       },
       "isFinal": false,
-      "designNotes": "Rewards early Body."
+      "designNotes": "Rewards early Green."
     },
     {
       "id": "a003",
@@ -2920,7 +3070,7 @@
       "id": "a015",
       "name": "Cambrian Explosion",
       "emoji": "💥",
-      "text": "Each player immediately plays one extra Trait.",
+      "text": "Each player may play 1 extra Trait this Age.",
       "effect": {
         "type": "playExtra",
         "params": {
@@ -2951,7 +3101,7 @@
       "id": "a017",
       "name": "The Long Drought",
       "emoji": "🏜️",
-      "text": "No one may draw next turn.",
+      "text": "No one draws from Trait effects for the rest of this Age.",
       "effect": {
         "type": "skipNextPlayer",
         "params": {
@@ -2966,7 +3116,7 @@
       "id": "a018",
       "name": "Convergent Evolution",
       "emoji": "🔗",
-      "text": "Each player scores +2 now-locked points if all their Traits share 2 or fewer colors.",
+      "text": "Each player banks +2 endgame points if their Trait Row has 2 or fewer colors.",
       "effect": {
         "type": "endgameBonus",
         "params": {
@@ -2998,6 +3148,21 @@
       },
       "isFinal": false,
       "designNotes": "Attrition Age."
+    },
+    {
+      "id": "a022",
+      "name": "Chromatic Bloom",
+      "emoji": "🎨",
+      "text": "Each player may play 1 extra Trait this Age. The extra Trait must match the color of their first Trait.",
+      "effect": {
+        "type": "playExtra",
+        "params": {
+          "count": 1,
+          "target": "allPlayers",
+          "sameColorAsFirst": true
+        }
+      },
+      "designNotes": "Color identity Age with an extra-play restriction."
     },
     {
       "id": "a020",

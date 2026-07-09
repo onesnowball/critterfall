@@ -30,12 +30,22 @@ function getInviteLink(code) {
   return url.toString();
 }
 
+function colorKey(color) {
+  return String(color || "colorless").toLowerCase();
+}
+
+function formatPoints(value) {
+  const numericValue = Number(value || 0);
+  return numericValue > 0 ? `+${numericValue}` : String(numericValue);
+}
+
 function TraitCard({ card, actionLabel, onAction, disabled, subtle = false }) {
   const keywords = card.keywords || [];
-  const tags = card.tags || [card.color].filter(Boolean);
-  const colorClass = card.color ? ` color-pill--${card.color.toLowerCase()}` : "";
+  const points = card.effectivePoints ?? card.points ?? 0;
+  const keywordKey = card.instanceId || card.id || card.name;
   const classNames = [
     "trait-card",
+    `trait-card--color-${colorKey(card.color)}`,
     subtle ? "trait-card--subtle" : "",
     keywords.includes("Dominant") ? "trait-card--dominant" : "",
     keywords.includes("Late") ? "trait-card--late" : "",
@@ -51,24 +61,20 @@ function TraitCard({ card, actionLabel, onAction, disabled, subtle = false }) {
         <span className="trait-card__emoji" aria-hidden="true">
           {card.emoji}
         </span>
-        <div>
+        <div className="trait-card__title">
           <h4>{card.name}</h4>
-          <p className="trait-card__tags">{tags.join(" | ")}</p>
+          <span className={`face-value${points < 0 ? " face-value--negative" : ""}`}>{formatPoints(points)}</span>
         </div>
       </div>
       <p className="trait-card__text">{card.text}</p>
       <div className="trait-card__meta">
-        {card.color ? <span className={`color-pill${colorClass}`}>{card.color}</span> : null}
         {keywords.map((keyword) => (
-          <span key={`${card.instanceId}-${keyword}`} className="keyword-pill">
+          <span key={`${keywordKey}-${keyword}`} className="keyword-pill">
             {keyword}
           </span>
         ))}
         {card.status?.poisoned ? <span className="status-pill">Poison {card.status.poisoned}</span> : null}
         {card.parasiteOwnerName ? <span className="status-pill">Parasite by {card.parasiteOwnerName}</span> : null}
-        <span className={`point-pill${card.effectivePoints < 0 ? " point-pill--negative" : ""}`}>
-          {card.effectivePoints > 0 ? `+${card.effectivePoints}` : card.effectivePoints}
-        </span>
         {card.isDoubled ? <span className="meta-pill">x2 this Age</span> : null}
       </div>
       {actionLabel ? (
@@ -243,6 +249,112 @@ function PendingChoicePanel({ choice, onResolve }) {
   );
 }
 
+function AgeAnnouncement({ age }) {
+  if (!age) {
+    return null;
+  }
+
+  return (
+    <div className={`age-announcement${age.isCatastrophe ? " age-announcement--catastrophe" : ""}`}>
+      <p className="eyebrow">Age {age.number}</p>
+      <h2>
+        {age.emoji} {age.name}
+      </h2>
+      <p>{age.isCatastrophe ? "Catastrophe" : "New Age"}</p>
+    </div>
+  );
+}
+
+function CatalogModal({ catalog, error, isOpen, activeTab, search, onOpen, onClose, onTabChange, onSearchChange }) {
+  if (!isOpen) {
+    return null;
+  }
+
+  const normalizedSearch = search.trim().toLowerCase();
+  const traits = (catalog?.traits || []).filter((card) => {
+    const haystack = `${card.name} ${card.color} ${card.text} ${(card.keywords || []).join(" ")}`.toLowerCase();
+    return !normalizedSearch || haystack.includes(normalizedSearch);
+  });
+  const ages = (catalog?.ages || []).filter((age) => {
+    const haystack = `${age.name} ${age.text}`.toLowerCase();
+    return !normalizedSearch || haystack.includes(normalizedSearch);
+  });
+
+  return (
+    <div className="catalog-backdrop" role="dialog" aria-modal="true" aria-label="Card Dictionary">
+      <section className="panel catalog-modal">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Dictionary</p>
+            <h2>Cards and Ages</h2>
+          </div>
+          <button className="secondary-button" type="button" onClick={onClose}>
+            Close
+          </button>
+        </div>
+
+        <div className="catalog-toolbar">
+          <div className="catalog-tabs" role="tablist" aria-label="Dictionary sections">
+            <button
+              className={`secondary-button${activeTab === "traits" ? " secondary-button--active" : ""}`}
+              type="button"
+              onClick={() => onTabChange("traits")}
+            >
+              Traits
+            </button>
+            <button
+              className={`secondary-button${activeTab === "ages" ? " secondary-button--active" : ""}`}
+              type="button"
+              onClick={() => onTabChange("ages")}
+            >
+              Ages
+            </button>
+          </div>
+          <input
+            type="search"
+            value={search}
+            onChange={(event) => onSearchChange(event.target.value)}
+            placeholder="Search"
+          />
+        </div>
+
+        {error ? (
+          <div className="catalog-empty">
+            <p className="error-text">{error}</p>
+            <button className="secondary-button" type="button" onClick={onOpen}>
+              Retry
+            </button>
+          </div>
+        ) : null}
+
+        {!error && !catalog ? <p className="empty-state">Loading dictionary...</p> : null}
+
+        {!error && catalog && activeTab === "traits" ? (
+          <div className="catalog-grid">
+            {traits.map((card) => (
+              <TraitCard key={card.id} card={card} subtle />
+            ))}
+          </div>
+        ) : null}
+
+        {!error && catalog && activeTab === "ages" ? (
+          <div className="age-dictionary-grid">
+            {ages.map((age) => (
+              <article key={age.id} className={`age-dictionary-card${age.isFinal ? " age-dictionary-card--final" : ""}`}>
+                <div>
+                  <span aria-hidden="true">{age.emoji}</span>
+                  <h3>{age.name}</h3>
+                </div>
+                <p>{age.text}</p>
+              </article>
+            ))}
+          </div>
+        ) : null}
+      </section>
+    </div>
+  );
+}
+
 function ScoreBreakdown({ finalScores, isHost, onNewGame }) {
   const winners = finalScores.filter((entry) => entry.isWinner).map((entry) => entry.name);
 
@@ -289,6 +401,12 @@ function App() {
   const [error, setError] = useState("");
   const [busyAction, setBusyAction] = useState("");
   const [shareStatus, setShareStatus] = useState("");
+  const [catalog, setCatalog] = useState(null);
+  const [catalogError, setCatalogError] = useState("");
+  const [catalogOpen, setCatalogOpen] = useState(false);
+  const [catalogTab, setCatalogTab] = useState("traits");
+  const [catalogSearch, setCatalogSearch] = useState("");
+  const [ageAnnouncement, setAgeAnnouncement] = useState(null);
 
   useEffect(() => {
     const handleConnect = () => {
@@ -357,6 +475,16 @@ function App() {
   const isLobby = roomState?.phase === "lobby";
   const isGameOver = roomState?.phase === "gameOver";
 
+  useEffect(() => {
+    if (!isPlaying || !roomState?.currentAge?.id) {
+      return undefined;
+    }
+
+    setAgeAnnouncement(roomState.currentAge);
+    const timer = window.setTimeout(() => setAgeAnnouncement(null), 2100);
+    return () => window.clearTimeout(timer);
+  }, [isPlaying, roomState?.currentAge?.id]);
+
   async function emitAction(eventName, payload = {}) {
     if (!socket.connected) {
       socket.connect();
@@ -421,6 +549,28 @@ function App() {
       setShareStatus("Invite link copied.");
     } catch (_error) {
       setShareStatus(inviteLink);
+    }
+  }
+
+  async function openCatalog() {
+    setCatalogOpen(true);
+
+    if (catalog) {
+      return;
+    }
+
+    setCatalogError("");
+
+    try {
+      const response = await fetch(`${SERVER_URL}/api/catalog`);
+
+      if (!response.ok) {
+        throw new Error("Dictionary failed to load.");
+      }
+
+      setCatalog(await response.json());
+    } catch (_error) {
+      setCatalogError("Could not load the dictionary.");
     }
   }
 
@@ -494,13 +644,25 @@ function App() {
   const isLateWindow = Boolean(roomState?.turnState?.lateWindow);
   const canPassLate = roomState?.isYourTurn && isLateWindow && !roomState?.pendingChoice && !roomState?.pendingDiscard;
   const isWaitingForChoice = Boolean(roomState?.pendingChoice);
+  const allowedColors = roomState?.turnState?.allowedColors || [];
+  const canEndTurn =
+    roomState?.isYourTurn &&
+    !isLateWindow &&
+    !roomState?.pendingChoice &&
+    !roomState?.pendingDiscard &&
+    roomState?.turnState?.primaryActionTaken &&
+    roomState.turnState.playsRemaining > 0;
   const canPlayTraitCard = (card) => {
     if (!roomState?.isYourTurn || roomState.pendingDiscard || roomState.pendingChoice) {
       return false;
     }
 
-    if (isLateWindow) {
-      return Boolean(card.keywords?.includes("Late"));
+    if (isLateWindow && !card.keywords?.includes("Late")) {
+      return false;
+    }
+
+    if (allowedColors.length && !allowedColors.includes(card.color)) {
+      return false;
     }
 
     return true;
@@ -511,11 +673,27 @@ function App() {
       ? "Late window"
       : roomState?.isYourTurn && isWaitingForChoice
         ? "Choice pending"
-        : roomState?.isYourTurn && roomState?.turnState?.playsRemaining > 1
-          ? `${roomState.turnState.playsRemaining} plays left this turn`
-          : roomState?.isYourTurn && roomState?.turnState?.playsRemaining === 1
-            ? "1 play left this turn"
-            : "";
+        : roomState?.isYourTurn && allowedColors.length
+          ? `Next play: ${allowedColors.join(" or ")} only`
+          : roomState?.isYourTurn && roomState?.turnState?.playsRemaining > 1
+            ? `${roomState.turnState.playsRemaining} plays left this turn`
+            : roomState?.isYourTurn && roomState?.turnState?.playsRemaining === 1
+              ? "1 play left this turn"
+              : "";
+
+  const catalogModal = (
+    <CatalogModal
+      catalog={catalog}
+      error={catalogError}
+      isOpen={catalogOpen}
+      activeTab={catalogTab}
+      search={catalogSearch}
+      onOpen={openCatalog}
+      onClose={() => setCatalogOpen(false)}
+      onTabChange={setCatalogTab}
+      onSearchChange={setCatalogSearch}
+    />
+  );
 
   if (!roomState) {
     return (
@@ -555,6 +733,9 @@ function App() {
                 {busyAction === "joinRoom" ? "Joining..." : "Join Room"}
               </button>
             </div>
+            <button className="secondary-button" type="button" onClick={openCatalog}>
+              Card Dictionary
+            </button>
             <div className="status-strip">
               <span className="meta-pill">{status}</span>
               <span className="meta-pill">Socket: {SERVER_URL}</span>
@@ -577,6 +758,7 @@ function App() {
             <p>Hands stay private unless a reveal effect exposes every card with full text.</p>
           </article>
         </section>
+        {catalogModal}
       </main>
     );
   }
@@ -620,6 +802,9 @@ function App() {
                 <button className="secondary-button" type="button" onClick={copyInviteLink}>
                   Copy Invite Link
                 </button>
+                <button className="secondary-button" type="button" onClick={openCatalog}>
+                  Card Dictionary
+                </button>
                 {shareStatus ? <p className="muted-text">{shareStatus}</p> : null}
               </div>
               <button
@@ -640,6 +825,7 @@ function App() {
         </section>
 
         <LogPanel log={roomState.log} />
+        {catalogModal}
       </main>
     );
   }
@@ -647,6 +833,7 @@ function App() {
   if (isPlaying) {
     return (
       <main className="app-shell">
+        <AgeAnnouncement age={ageAnnouncement} />
         <section key={roomState.currentAge?.id || "age"} className="panel panel--hero age-panel">
           <div className="section-heading">
             <div>
@@ -678,13 +865,18 @@ function App() {
               className="secondary-button"
               type="button"
               onClick={canPassLate ? passLateWindow : skipCurrentTurn}
-              disabled={canPassLate ? false : !canSkip}
+              disabled={canPassLate ? false : !(canSkip || canEndTurn)}
             >
-              {canPassLate ? "Pass Late" : "Skip and Draw 2"}
+              {canPassLate ? "Pass Late" : canEndTurn ? "End Turn" : "Skip and Draw 2"}
+            </button>
+            <button className="secondary-button" type="button" onClick={openCatalog}>
+              Dictionary
             </button>
             <span className="muted-text">
               {isLateWindow
                 ? "Play a Late Trait now, or pass so the next player can act."
+                : allowedColors.length
+                  ? `Your next Trait must be ${allowedColors.join(" or ")}.`
                 : "Dominant Traits resist stealing and destruction. Poison resolves when the Age stabilizes."}
             </span>
           </div>
@@ -758,6 +950,7 @@ function App() {
         </section>
 
         <LogPanel log={roomState.log} />
+        {catalogModal}
       </main>
     );
   }
@@ -779,6 +972,7 @@ function App() {
         </section>
 
         <LogPanel log={roomState.log} />
+        {catalogModal}
       </main>
     );
   }

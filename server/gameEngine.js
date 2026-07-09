@@ -7,6 +7,13 @@ const MAX_GENE_POOL_SIZE = 12;
 const MAX_TRAIT_PLAYS_PER_TURN = 3;
 const MIN_PLAYERS = 2;
 const MAX_PLAYERS = 6;
+const CARD_COLORS = ["Green", "Red", "Blue", "Purple"];
+const COLOR_ALIASES = {
+  Body: "Green",
+  Predatory: "Red",
+  Social: "Blue",
+  Weird: "Purple"
+};
 
 function clone(value) {
   return value == null ? value : JSON.parse(JSON.stringify(value));
@@ -26,6 +33,14 @@ function shuffle(items) {
   }
 
   return copy;
+}
+
+function normalizeColor(color) {
+  if (!color) {
+    return "Purple";
+  }
+
+  return COLOR_ALIASES[color] || color;
 }
 
 function createCardInstance(card, copyIndex = 0) {
@@ -388,19 +403,20 @@ function resolveCount(room, player, value, fallback = 1) {
     return Math.max(0, 6 - player.hand.length);
   }
 
-  if (value === "socialCount2") {
-    return Math.floor(colorCount(player, "Social") / 2);
+  if (value === "socialCount2" || value === "blueCount2") {
+    return Math.floor(colorCount(player, "Blue") / 2);
   }
 
-  if (value === "bodyCount") {
-    return colorCount(player, "Body");
+  if (value === "bodyCount" || value === "greenCount") {
+    return colorCount(player, "Green");
   }
 
   return fallback;
 }
 
 function colorCount(player, color) {
-  return player.board.filter((card) => effectiveColor(player, card) === color).length;
+  const normalizedColor = normalizeColor(color);
+  return player.board.filter((card) => effectiveColor(player, card) === normalizedColor).length;
 }
 
 function uniqueColors(player) {
@@ -409,7 +425,7 @@ function uniqueColors(player) {
 
 function effectiveColor(player, card) {
   if (card.colorOverride) {
-    return card.colorOverride;
+    return normalizeColor(card.colorOverride);
   }
 
   if (card.passiveEffect?.type === "copyTrait" && card.passiveEffect.params?.aspect === "colorOfLeftNeighbor") {
@@ -421,7 +437,35 @@ function effectiveColor(player, card) {
     }
   }
 
-  return card.color || "Weird";
+  return normalizeColor(card.color);
+}
+
+function uniqueNormalizedColors(colors = []) {
+  return [...new Set(colors.map(normalizeColor).filter(Boolean))];
+}
+
+function extraPlayColorsFor(actor, sourceCard, params = {}) {
+  const colors = [];
+
+  if (params.restrictColor) {
+    colors.push(params.restrictColor);
+  }
+
+  if (params.sameColorAsSource && sourceCard) {
+    colors.push(effectiveColor(actor, sourceCard));
+  }
+
+  return uniqueNormalizedColors(colors);
+}
+
+function formatColorRestriction(colors = []) {
+  const labels = uniqueNormalizedColors(colors);
+
+  if (!labels.length) {
+    return "";
+  }
+
+  return labels.length === 1 ? `${labels[0]} only` : `${labels.join(" or ")} only`;
 }
 
 function targetPlayers(room, actor, target = "nextOpponent") {
@@ -1160,7 +1204,7 @@ function applyStabilize(room) {
       if (card.passiveEffect?.type === "draw" && card.passiveEffect.params?.trigger === "onStabilize") {
         const condition = card.passiveEffect.params?.condition;
 
-        if (!condition || (condition === "emptyHand" && player.hand.length === 0)) {
+        if (!condition || (condition === "emptyHand" && player.hand.length === 0) || (condition === "lowHand2" && player.hand.length < 2)) {
           const count = resolveCount(room, player, card.passiveEffect.params?.count, 1);
           drawCard(room, player, count);
           addLog(room, `${card.name} drew ${count} card${count === 1 ? "" : "s"} for ${player.name}.`, player.id);
@@ -1371,11 +1415,16 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
     case "playExtra": {
       if (room.turnState) {
         const count = resolveCount(room, actor, params.count, 1);
+        const allowedColors = extraPlayColorsFor(actor, sourceCard, params);
         room.turnState.playsRemaining = Math.min(room.turnState.playsRemaining + count, MAX_TRAIT_PLAYS_PER_TURN);
+        room.turnState.allowedColors = allowedColors.length ? allowedColors : null;
         if (room.turnState.lateWindow && (params.fullTurn || isLate(sourceCard))) {
           room.turnState.lateWindow = false;
         }
-        addLog(room, `${actor.name} may play ${count} extra Trait${count === 1 ? "" : "s"} this turn.`);
+        addLog(
+          room,
+          `${actor.name} may play ${count} extra Trait${count === 1 ? "" : "s"} this turn${allowedColors.length ? ` (${formatColorRestriction(allowedColors)})` : ""}.`
+        );
       }
       break;
     }
@@ -1440,11 +1489,10 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
 
     case "copyTrait": {
       if (params.aspect === "recolorRandomAll") {
-        const colors = ["Body", "Predatory", "Social", "Weird"];
         room.players.forEach((player) => {
           player.board.forEach((card) => {
             if (!isDominant(card)) {
-              card.colorOverride = colors[Math.floor(Math.random() * colors.length)];
+              card.colorOverride = CARD_COLORS[Math.floor(Math.random() * CARD_COLORS.length)];
             }
           });
         });
@@ -1453,7 +1501,7 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
         room.players.forEach((player) => {
           player.board.forEach((card) => {
             if (!isDominant(card)) {
-              card.colorOverride = params.to || "Weird";
+              card.colorOverride = normalizeColor(params.to);
             }
           });
         });
@@ -1521,7 +1569,7 @@ function applyAgeEffect(room) {
   switch (effect.type) {
     case "draw":
       room.players.forEach((player) => {
-        if (params.condition === "ownBody2" && colorCount(player, "Body") < 2) {
+        if ((params.condition === "ownBody2" || params.condition === "ownGreen2") && colorCount(player, "Green") < 2) {
           const discarded = discardCardFromHand(room, player);
 
           if (discarded) {
@@ -1636,9 +1684,11 @@ function applyAgeEffect(room) {
 
     case "playExtra":
       room.players.forEach((player) => {
-        player.flags.extraPlayThisAge = Math.min(1 + Number(params.count || 1), MAX_TRAIT_PLAYS_PER_TURN - 1);
+        player.flags.extraPlayThisAge = Math.min(Number(params.count || 1), MAX_TRAIT_PLAYS_PER_TURN - 1);
+        player.flags.extraPlayColorsThisAge = params.restrictColor ? uniqueNormalizedColors([params.restrictColor]) : null;
+        player.flags.sameColorExtraThisAge = Boolean(params.sameColorAsFirst);
       });
-      addLog(room, "Everyone gets an extra play this Age.");
+      addLog(room, params.sameColorAsFirst ? "Everyone gets an extra same-color play this Age." : "Everyone gets an extra play this Age.");
       break;
 
     case "placeParasite":
@@ -1685,7 +1735,10 @@ function revealAge(room) {
   room.revealedHands = {};
   room.players.forEach((player) => {
     player.hasActedThisAge = false;
-    player.flags.extraPlayThisAge ||= 0;
+    delete player.flags.noDrawThisAge;
+    delete player.flags.extraPlayThisAge;
+    delete player.flags.extraPlayColorsThisAge;
+    delete player.flags.sameColorExtraThisAge;
   });
 
   if (!room.currentAge) {
@@ -1711,11 +1764,18 @@ function beginTurn(room) {
   }
 
   const extra = Number(player.flags.extraPlayThisAge || 0);
+  const extraPlayColorsAfterFirst = uniqueNormalizedColors(player.flags.extraPlayColorsThisAge || []);
+  const sameColorExtraPending = Boolean(player.flags.sameColorExtraThisAge);
   player.flags.extraPlayThisAge = 0;
+  delete player.flags.extraPlayColorsThisAge;
+  delete player.flags.sameColorExtraThisAge;
   room.turnState = {
     primaryActionTaken: false,
     playsTaken: 0,
-    playsRemaining: Math.min(1 + extra, MAX_TRAIT_PLAYS_PER_TURN)
+    playsRemaining: Math.min(1 + extra, MAX_TRAIT_PLAYS_PER_TURN),
+    allowedColors: null,
+    extraPlayColorsAfterFirst: extraPlayColorsAfterFirst.length ? extraPlayColorsAfterFirst : null,
+    sameColorExtraPending
   };
   room.pendingDiscard = null;
   addLog(room, `${player.name}'s turn.`);
@@ -1836,12 +1896,26 @@ function requireCurrentTurn(room, playerId) {
   return player;
 }
 
-function canPlayInCurrentWindow(room, card) {
-  if (!room.turnState?.lateWindow) {
-    return true;
+function canPlayInCurrentWindow(room, player, card) {
+  if (room.turnState?.lateWindow && !isLate(card)) {
+    return {
+      ok: false,
+      message: "Only Late Traits can be played right now."
+    };
   }
 
-  return isLate(card);
+  const allowedColors = uniqueNormalizedColors(room.turnState?.allowedColors || []);
+
+  if (allowedColors.length && !allowedColors.includes(effectiveColor(player, card))) {
+    return {
+      ok: false,
+      message: `Your next Trait must be ${formatColorRestriction(allowedColors)}.`
+    };
+  }
+
+  return {
+    ok: true
+  };
 }
 
 function continueAfterActionCleanup(room) {
@@ -1899,10 +1973,13 @@ function playCard(room, playerId, cardInstanceId) {
 
   const card = player.hand[cardIndex];
 
-  if (!canPlayInCurrentWindow(room, card)) {
-    throw new Error("Only Late Traits can be played right now.");
+  const playWindow = canPlayInCurrentWindow(room, player, card);
+
+  if (!playWindow.ok) {
+    throw new Error(playWindow.message);
   }
 
+  const consumedAllowedColors = Boolean(room.turnState.allowedColors?.length);
   player.hand.splice(cardIndex, 1);
   const previousTrait = room.lastPlayedTrait?.card || null;
   card.ownerId = player.id;
@@ -1910,6 +1987,21 @@ function playCard(room, playerId, cardInstanceId) {
   room.turnState.primaryActionTaken = true;
   room.turnState.playsTaken += 1;
   room.turnState.playsRemaining -= 1;
+
+  if (consumedAllowedColors) {
+    room.turnState.allowedColors = null;
+  }
+
+  if (room.turnState.playsTaken === 1 && room.turnState.playsRemaining > 0) {
+    if (room.turnState.sameColorExtraPending) {
+      room.turnState.allowedColors = [effectiveColor(player, card)];
+      room.turnState.sameColorExtraPending = false;
+      addLog(room, `${player.name}'s extra play must be ${formatColorRestriction(room.turnState.allowedColors)}.`);
+    } else if (room.turnState.extraPlayColorsAfterFirst?.length) {
+      room.turnState.allowedColors = room.turnState.extraPlayColorsAfterFirst;
+      addLog(room, `${player.name}'s extra play must be ${formatColorRestriction(room.turnState.allowedColors)}.`);
+    }
+  }
 
   let isWaitingForChoice = false;
 
@@ -1943,6 +2035,15 @@ function skipTurn(room, playerId) {
   }
 
   if (room.turnState?.primaryActionTaken) {
+    if (room.turnState.playsRemaining > 0) {
+      const passedPlays = room.turnState.playsRemaining;
+      room.turnState.playsRemaining = 0;
+      room.turnState.allowedColors = null;
+      addLog(room, `${player.name} passed their remaining play${passedPlays === 1 ? "" : "s"}.`);
+      endTurn(room);
+      return;
+    }
+
     throw new Error("You already took an action this turn.");
   }
 
@@ -2104,8 +2205,8 @@ function scoreConditionBonus(room, player, card, params, baseScores) {
     return Math.floor(player.hand.length / 3) * Number(params.amount || 1);
   }
 
-  if (params.per === "ownColorBody2") {
-    return Math.floor(colorCount(player, "Body") / 2) * Number(params.amount || 1);
+  if (params.per === "ownColorBody2" || params.per === "ownColorGreen2") {
+    return Math.floor(colorCount(player, "Green") / 2) * Number(params.amount || 1);
   }
 
   if (params.per?.startsWith("otherColor")) {
@@ -2166,7 +2267,10 @@ function scoreEndEffect(room, player, card, effect, baseScores) {
     let points = 0;
 
     if (params.countColor) {
-      points = room.players.flatMap((candidate) => candidate.board).filter((candidate) => candidate.color === params.countColor).length;
+      const countColor = normalizeColor(params.countColor);
+      points = room.players
+        .flatMap((candidate) => candidate.board.map((candidateCard) => ({ player: candidate, card: candidateCard })))
+        .filter((entry) => effectiveColor(entry.player, entry.card) === countColor).length;
       points = Math.min(points, Number(params.max || points));
     } else {
       points = uniqueColors(player) * Number(params.perColor || 1);
@@ -2180,7 +2284,7 @@ function scoreEndEffect(room, player, card, effect, baseScores) {
     let points = 0;
 
     if (params.mode === "uniqueColors") {
-      points = new Set(cards.map((candidate) => candidate.color)).size;
+      points = new Set(cards.map((candidate) => normalizeColor(candidate.colorOverride || candidate.color))).size;
     } else if (params.mode === "uniqueNames") {
       points = new Set(cards.map((candidate) => candidate.name)).size;
       points = Math.min(points, Number(params.max || points));
@@ -2202,6 +2306,21 @@ function scoreEndEffect(room, player, card, effect, baseScores) {
     const count = room.players.flatMap((candidate) => candidate.board).filter((candidate) => candidate.parasiteOwnerId === player.id).length;
     const points = count * Number(params.perParasite || 1);
     return points ? { points, text: `${card.name}: +${points} for parasites placed` } : null;
+  }
+
+  if (effect.type === "scoreForFaceValue") {
+    const value = Number(params.value || 0);
+    const amount = Number(params.amount || 1);
+    const count = player.board.filter((candidate) => Number(candidate.points || 0) === value).length;
+    const points = count * amount;
+    return points ? { points, text: `${card.name}: +${points} for face-value ${value} Traits` } : null;
+  }
+
+  if (effect.type === "scoreForBehindOpponents") {
+    const amount = Number(params.amount || 1);
+    const count = room.players.filter((candidate) => candidate.id !== player.id && baseScores[candidate.id] > baseScores[player.id]).length;
+    const points = count * amount;
+    return points ? { points, text: `${card.name}: +${points} for opponents ahead` } : null;
   }
 
   return null;
@@ -2345,8 +2464,8 @@ function decorateCard(room, card) {
 
   return {
     ...card,
-    color: card.colorOverride || card.color,
-    tags: [card.colorOverride || card.color, ...(card.keywords || [])].filter(Boolean),
+    color: normalizeColor(card.colorOverride || card.color),
+    tags: [...(card.keywords || [])].filter(Boolean),
     effectivePoints: cardScoreForHost(card),
     isDoubled: Number(card.pointMultiplier || 1) > 1,
     status: card.status || {},
