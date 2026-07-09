@@ -57,15 +57,39 @@ function createTraitDeck() {
 
 function createAgeDeck(playerCount) {
   const finalAges = AGE_CARDS.filter((age) => age.isFinal);
-  const normalAges = AGE_CARDS.filter((age) => !age.isFinal);
-  const totalAges = playerCount <= 3 ? 6 : playerCount === 4 ? 7 : 8;
-  const chosen = shuffle(normalAges).slice(0, Math.max(1, totalAges - 1));
+  const catastropheTypes = new Set(["destroyOpponentTrait", "destroyOwnTrait", "poison", "discardRandomOpponent", "placeParasite"]);
+  const isCatastrophe = (age) => Boolean(age.isFinal || catastropheTypes.has(age.effect?.type));
+  const catastropheAges = AGE_CARDS.filter((age) => !age.isFinal && isCatastrophe(age));
+  const normalAges = AGE_CARDS.filter((age) => !age.isFinal && !isCatastrophe(age));
+  const totalAges = 12;
+  const catastropheSlots = new Set([4, 8]);
+  const normalDeck = shuffle(normalAges);
+  const catastropheDeck = shuffle(catastropheAges);
   const finalAge = shuffle(finalAges)[0] || normalAges[0];
+  const ages = [];
 
-  return [...chosen, finalAge].map((age, index, ages) => ({
+  for (let number = 1; number < totalAges; number += 1) {
+    const pool = catastropheSlots.has(number) ? catastropheDeck : normalDeck;
+    const fallbackPool = catastropheSlots.has(number) ? normalDeck : catastropheDeck;
+    const age = pool.length ? pool.pop() : fallbackPool.pop();
+
+    if (age) {
+      ages.push({
+        ...clone(age),
+        isCatastrophe: catastropheSlots.has(number) || isCatastrophe(age)
+      });
+    }
+  }
+
+  ages.push({
+    ...clone(finalAge),
+    isCatastrophe: true
+  });
+
+  return ages.map((age, index, ageList) => ({
     ...clone(age),
     number: index + 1,
-    total: ages.length
+    total: ageList.length
   }));
 }
 
@@ -823,7 +847,10 @@ function queuePublicTraitChoice(room, actor, sourceCard, params = {}, mode = "de
       sourceCard,
       params,
       remainingCount: Math.max(1, Number(params.count || 1)),
-      prompt: choicePrompt(sourceCard, `${mode === "steal" ? "steal" : "destroy"} a public Trait`),
+      prompt: choicePrompt(
+        sourceCard,
+        `${mode === "steal" ? "steal" : mode === "poison" ? "poison" : "destroy"} a public Trait`
+      ),
       choices: entries.map((entry) => ({
         id: entry.card.instanceId,
         ownerId: entry.player.id,
@@ -1036,6 +1063,8 @@ function applyPublicTraitChoice(room, choice, option, actor) {
     stolen.ownerId = actor.id;
     actor.board.push(stolen);
     addLog(room, `${actor.name} stole ${stolen.name} from ${entry.player.name}'s Trait Row.`);
+  } else if (choice.mode === "poison") {
+    poisonTrait(room, entry, Number(choice.params?.turns || 1));
   } else {
     removeBoardEntry(room, entry, "destroyed");
   }
@@ -1327,6 +1356,14 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
 
     case "poison":
     case "delayedPoison": {
+      if (context.finishAfterChoice) {
+        const pending = queuePublicTraitChoice(room, actor, sourceCard, params, "poison", context);
+
+        if (pending) {
+          return true;
+        }
+      }
+
       const target = targetPlayers(room, actor, params.target || "nextOpponent")[0] || actor;
       const entry = selectTraitEntry(room, [target], params.fallback || "randomNonDominantTrait");
       poisonTrait(room, entry, effect.type === "delayedPoison" ? Number(params.turns || 2) : 1);
@@ -1724,6 +1761,15 @@ function endTurn(room) {
 }
 
 function joinRoom(room, playerId, playerName) {
+  const existing = findPlayer(room, playerId);
+
+  if (existing) {
+    const nextName = cleanName(playerName);
+    existing.name = nextName;
+    addLog(room, `${existing.name} rejoined the room.`);
+    return existing;
+  }
+
   if (room.phase !== "lobby") {
     throw new Error("That game has already started.");
   }
@@ -1732,14 +1778,11 @@ function joinRoom(room, playerId, playerName) {
     throw new Error("That room is full.");
   }
 
-  if (findPlayer(room, playerId)) {
-    throw new Error("You are already in this room.");
-  }
-
   const player = createPlayer(playerId, playerName);
   room.players.push(player);
   room.turnOrder = room.players.map((candidate) => candidate.id);
   addLog(room, `${player.name} joined the room.`);
+  return player;
 }
 
 function startGame(room, playerId) {

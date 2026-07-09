@@ -2,6 +2,22 @@ import { useEffect, useMemo, useState } from "react";
 import { SERVER_URL, socket } from "./socket";
 
 const SAVED_NAME_KEY = "critterfall-player-name";
+const SAVED_CLIENT_ID_KEY = "critterfall-client-id";
+
+function getClientId() {
+  const existing = localStorage.getItem(SAVED_CLIENT_ID_KEY);
+
+  if (existing) {
+    return existing;
+  }
+
+  const nextId =
+    typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `client-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  localStorage.setItem(SAVED_CLIENT_ID_KEY, nextId);
+  return nextId;
+}
 
 function getRoomCodeFromUrl() {
   const params = new URLSearchParams(window.location.search);
@@ -145,7 +161,15 @@ function choiceActionLabel(choice) {
   }
 
   if (choice.type === "publicTrait") {
-    return choice.mode === "steal" ? "Steal This" : "Destroy This";
+    if (choice.mode === "steal") {
+      return "Steal This";
+    }
+
+    if (choice.mode === "poison") {
+      return "Poison This";
+    }
+
+    return "Destroy This";
   }
 
   if (choice.type === "discardCard") {
@@ -267,7 +291,20 @@ function App() {
   const [shareStatus, setShareStatus] = useState("");
 
   useEffect(() => {
-    const handleConnect = () => setStatus("Connected");
+    const handleConnect = () => {
+      setStatus("Connected");
+
+      const savedName = localStorage.getItem(SAVED_NAME_KEY) || "";
+      const roomCode = getRoomCodeFromUrl();
+
+      if (savedName && roomCode) {
+        socket.emit("joinRoom", { name: savedName, code: roomCode, clientId: getClientId() }, (response) => {
+          if (response && !response.ok) {
+            setError(response.message || "Could not rejoin that room.");
+          }
+        });
+      }
+    };
     const handleDisconnect = () => setStatus("Disconnected");
     const handleStateUpdate = (nextState) => {
       setRoomState(nextState);
@@ -289,7 +326,9 @@ function App() {
     socket.on("stateUpdate", handleStateUpdate);
     socket.on("actionError", handleActionError);
 
-    if (!socket.connected) {
+    if (socket.connected) {
+      handleConnect();
+    } else {
       socket.connect();
     }
 
@@ -339,7 +378,7 @@ function App() {
     }
 
     setBusyAction("createRoom");
-    const response = await emitAction("createRoom", { name: trimmedName });
+    const response = await emitAction("createRoom", { name: trimmedName, clientId: getClientId() });
 
     if (!response.ok) {
       setError(response.message || "Could not create room.");
@@ -362,7 +401,7 @@ function App() {
     }
 
     setBusyAction("joinRoom");
-    const response = await emitAction("joinRoom", { name: trimmedName, code: trimmedCode });
+    const response = await emitAction("joinRoom", { name: trimmedName, code: trimmedCode, clientId: getClientId() });
 
     if (!response.ok) {
       setError(response.message || "Could not join that room.");
@@ -621,6 +660,7 @@ function App() {
             </div>
             <div className="status-strip">
               <span className="meta-pill">Room {roomState.code}</span>
+              {roomState.currentAge?.isCatastrophe ? <span className="status-pill">Catastrophe</span> : null}
               <span className="meta-pill">Deck {roomState.drawPileCount}</span>
               <span className="meta-pill">Discard {roomState.discardPileCount}</span>
             </div>

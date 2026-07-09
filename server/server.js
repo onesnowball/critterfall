@@ -101,6 +101,19 @@ function getRoomForSocket(socket) {
   return roomCode ? rooms.get(roomCode) || null : null;
 }
 
+function cleanClientId(clientId, fallback) {
+  const normalized = String(clientId || "")
+    .trim()
+    .replace(/[^a-zA-Z0-9_-]/g, "")
+    .slice(0, 48);
+
+  return normalized || fallback;
+}
+
+function getPlayerIdForSocket(socket) {
+  return socket.data.playerId || socket.id;
+}
+
 function requireRoomForSocket(socket) {
   const room = getRoomForSocket(socket);
 
@@ -119,6 +132,7 @@ function emitRoomState(room) {
 
 function removeSocketFromCurrentRoom(socket, options = {}) {
   const roomCode = socket.data.roomCode;
+  const playerId = getPlayerIdForSocket(socket);
 
   if (!roomCode) {
     return;
@@ -128,15 +142,22 @@ function removeSocketFromCurrentRoom(socket, options = {}) {
 
   if (options.leave !== false) {
     socket.leave(roomCode);
+    socket.leave(playerId);
   }
 
   socket.data.roomCode = null;
+  socket.data.playerId = null;
 
   if (!room) {
     return;
   }
 
-  const result = removePlayerFromRoom(room, socket.id);
+  if (options.removePlayer === false) {
+    emitRoomState(room);
+    return;
+  }
+
+  const result = removePlayerFromRoom(room, playerId);
 
   if (result.deleted) {
     rooms.delete(roomCode);
@@ -184,11 +205,14 @@ io.on("connection", (socket) => {
       removeSocketFromCurrentRoom(socket);
 
       const code = getAvailableRoomCode();
-      const room = createRoom(code, socket.id, payload.name);
+      const playerId = cleanClientId(payload.clientId, socket.id);
+      const room = createRoom(code, playerId, payload.name);
 
       rooms.set(code, room);
       socket.join(code);
+      socket.join(playerId);
       socket.data.roomCode = code;
+      socket.data.playerId = playerId;
 
       emitRoomState(room);
       return { code };
@@ -204,11 +228,18 @@ io.on("connection", (socket) => {
         throw new Error("That room code was not found.");
       }
 
-      removeSocketFromCurrentRoom(socket);
-      joinRoom(room, socket.id, payload.name);
+      const playerId = cleanClientId(payload.clientId, socket.id);
+
+      if (socket.data.roomCode && socket.data.roomCode !== code) {
+        removeSocketFromCurrentRoom(socket);
+      }
+
+      joinRoom(room, playerId, payload.name);
 
       socket.join(code);
+      socket.join(playerId);
       socket.data.roomCode = code;
+      socket.data.playerId = playerId;
 
       emitRoomState(room);
       return { code };
@@ -218,7 +249,7 @@ io.on("connection", (socket) => {
   socket.on("startGame", (_payload = {}, ack) => {
     handleAction(socket, ack, () => {
       const room = requireRoomForSocket(socket);
-      startGame(room, socket.id);
+      startGame(room, getPlayerIdForSocket(socket));
       emitRoomState(room);
       return {};
     });
@@ -227,7 +258,7 @@ io.on("connection", (socket) => {
   socket.on("playCard", (payload = {}, ack) => {
     handleAction(socket, ack, () => {
       const room = requireRoomForSocket(socket);
-      playCard(room, socket.id, payload.cardInstanceId);
+      playCard(room, getPlayerIdForSocket(socket), payload.cardInstanceId);
       emitRoomState(room);
       return {};
     });
@@ -236,7 +267,7 @@ io.on("connection", (socket) => {
   socket.on("skipTurn", (_payload = {}, ack) => {
     handleAction(socket, ack, () => {
       const room = requireRoomForSocket(socket);
-      skipTurn(room, socket.id);
+      skipTurn(room, getPlayerIdForSocket(socket));
       emitRoomState(room);
       return {};
     });
@@ -245,7 +276,7 @@ io.on("connection", (socket) => {
   socket.on("passLate", (_payload = {}, ack) => {
     handleAction(socket, ack, () => {
       const room = requireRoomForSocket(socket);
-      passLate(room, socket.id);
+      passLate(room, getPlayerIdForSocket(socket));
       emitRoomState(room);
       return {};
     });
@@ -254,7 +285,7 @@ io.on("connection", (socket) => {
   socket.on("resolveChoice", (payload = {}, ack) => {
     handleAction(socket, ack, () => {
       const room = requireRoomForSocket(socket);
-      resolveChoice(room, socket.id, payload.choiceId, payload.optionId);
+      resolveChoice(room, getPlayerIdForSocket(socket), payload.choiceId, payload.optionId);
       emitRoomState(room);
       return {};
     });
@@ -263,7 +294,7 @@ io.on("connection", (socket) => {
   socket.on("discardCard", (payload = {}, ack) => {
     handleAction(socket, ack, () => {
       const room = requireRoomForSocket(socket);
-      discardCard(room, socket.id, payload.cardInstanceId);
+      discardCard(room, getPlayerIdForSocket(socket), payload.cardInstanceId);
       emitRoomState(room);
       return {};
     });
@@ -272,14 +303,14 @@ io.on("connection", (socket) => {
   socket.on("newGame", (_payload = {}, ack) => {
     handleAction(socket, ack, () => {
       const room = requireRoomForSocket(socket);
-      newGame(room, socket.id);
+      newGame(room, getPlayerIdForSocket(socket));
       emitRoomState(room);
       return {};
     });
   });
 
   socket.on("disconnect", () => {
-    removeSocketFromCurrentRoom(socket, { leave: false });
+    removeSocketFromCurrentRoom(socket, { leave: false, removePlayer: false });
   });
 });
 
