@@ -1,0 +1,3010 @@
+{
+  "game": "Critterfall",
+  "version": "0.1-design",
+  "colors": [
+    "Body",
+    "Predatory",
+    "Social",
+    "Weird"
+  ],
+  "traits": [
+    {
+      "id": "t001",
+      "name": "Spare Heart",
+      "emoji": "❤️‍🩹",
+      "color": "Body",
+      "points": 2,
+      "keywords": [
+        "Dominant"
+      ],
+      "text": "Dominant. The first time one of your Traits would be destroyed, block it instead; then this is destroyed.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "shieldLikeBlock",
+        "params": {
+          "scope": "firstDestroy",
+          "consumes": true
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Anchor organ. Dominant so it can't be pre-removed cheaply."
+    },
+    {
+      "id": "t002",
+      "name": "Backup Kidney",
+      "emoji": "🫘",
+      "color": "Body",
+      "points": 1,
+      "keywords": [],
+      "text": "When an Age Stabilizes, if you have 0 cards in hand, draw 1.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "draw",
+        "params": {
+          "count": 1,
+          "trigger": "onStabilize",
+          "condition": "emptyHand",
+          "fallback": "self"
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Rewards dumping your hand; small engine."
+    },
+    {
+      "id": "t003",
+      "name": "Elastic Stomach",
+      "emoji": "🎈",
+      "color": "Body",
+      "points": 1,
+      "keywords": [],
+      "text": "Your hand size limit is +3. End: +1 for every 3 cards in hand.",
+      "immediateEffect": null,
+      "endEffect": {
+        "type": "scoreIfCondition",
+        "params": {
+          "per": "handCount3",
+          "amount": 1
+        }
+      },
+      "passiveEffect": {
+        "type": "handLimitMod",
+        "params": {
+          "amount": 3
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Enables big-hand combo decks."
+    },
+    {
+      "id": "t004",
+      "name": "Redundant Lung",
+      "emoji": "🫁",
+      "color": "Body",
+      "points": 2,
+      "keywords": [
+        "Dominant"
+      ],
+      "text": "Dominant.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Plain Dominant body block; low tempo, safe points."
+    },
+    {
+      "id": "t005",
+      "name": "Overclocked Spleen",
+      "emoji": "🩸",
+      "color": "Body",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: draw 2, then discard 1.",
+      "immediateEffect": {
+        "type": "draw",
+        "params": {
+          "count": 2,
+          "fallback": "self"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Filter, feeds discard-pile decks."
+    },
+    {
+      "id": "t006",
+      "name": "Gastric Furnace",
+      "emoji": "🔥",
+      "color": "Body",
+      "points": 0,
+      "keywords": [],
+      "text": "Immediate: discard 1 to draw 2.",
+      "immediateEffect": {
+        "type": "discardSelf",
+        "params": {
+          "count": 1,
+          "then": {
+            "type": "draw",
+            "params": {
+              "count": 2
+            }
+          },
+          "fallback": "self"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Card advantage engine, 0 pts."
+    },
+    {
+      "id": "t007",
+      "name": "Blubber Reserve",
+      "emoji": "🐳",
+      "color": "Body",
+      "points": 3,
+      "keywords": [],
+      "text": "Survives cold or freezing Ages.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "dominantProtection",
+        "params": {
+          "against": "ageWipe:cold"
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Situational insurance vs Ice Ages."
+    },
+    {
+      "id": "t008",
+      "name": "Chitin Plating",
+      "emoji": "🛡️",
+      "color": "Body",
+      "points": 1,
+      "keywords": [
+        "Dominant"
+      ],
+      "text": "Dominant. Immune to poison.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "dominantProtection",
+        "params": {
+          "against": "poison"
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Hard counter to venom decks."
+    },
+    {
+      "id": "t009",
+      "name": "Regrowth Node",
+      "emoji": "🌱",
+      "color": "Body",
+      "points": 1,
+      "keywords": [
+        "Late"
+      ],
+      "text": "Late. Immediate: revive one of your own destroyed Traits from the discard pile.",
+      "immediateEffect": {
+        "type": "reviveFromDiscard",
+        "params": {
+          "owner": "self",
+          "fallback": "mostRecentDiscard"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Undo a kill after Stabilize."
+    },
+    {
+      "id": "t010",
+      "name": "Ossified Skull",
+      "emoji": "🦴",
+      "color": "Body",
+      "points": 2,
+      "keywords": [
+        "Dominant"
+      ],
+      "text": "Dominant.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Cheap Dominant points, no upside."
+    },
+    {
+      "id": "t011",
+      "name": "Bioluminescent Liver",
+      "emoji": "💡",
+      "color": "Body",
+      "points": 1,
+      "keywords": [],
+      "text": "Passive: your hand is protected from reveal effects.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "dominantProtection",
+        "params": {
+          "against": "revealHand"
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Anti-information tech."
+    },
+    {
+      "id": "t012",
+      "name": "Vestigial Tail",
+      "emoji": "🦖",
+      "color": "Body",
+      "points": 0,
+      "keywords": [],
+      "text": "End: +2 if this is at the far left or far right of your Gene Pool.",
+      "immediateEffect": null,
+      "endEffect": {
+        "type": "scoreIfCondition",
+        "params": {
+          "cond": "edgeOfPool",
+          "amount": 2
+        }
+      },
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Adjacency/positional filler."
+    },
+    {
+      "id": "t013",
+      "name": "Prehensile Gut",
+      "emoji": "🧶",
+      "color": "Body",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: play an extra Body Trait this turn.",
+      "immediateEffect": {
+        "type": "playExtra",
+        "params": {
+          "count": 1,
+          "restrictColor": "Body",
+          "fallback": "self"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Body combo enabler."
+    },
+    {
+      "id": "t014",
+      "name": "Fat Storage Sac",
+      "emoji": "🧈",
+      "color": "Body",
+      "points": 1,
+      "keywords": [],
+      "text": "End: +1 for each card in your discard pile you own, max +4.",
+      "immediateEffect": null,
+      "endEffect": {
+        "type": "scoreForDiscardPile",
+        "params": {
+          "perCard": 1,
+          "max": 4
+        }
+      },
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Bridges Body into discard scoring."
+    },
+    {
+      "id": "t015",
+      "name": "Nictitating Membrane",
+      "emoji": "👁️",
+      "color": "Body",
+      "points": 1,
+      "keywords": [
+        "Dominant"
+      ],
+      "text": "Dominant. Passive: opponents cannot see this Trait's text until Stabilize.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "dominantProtection",
+        "params": {
+          "against": "inspect"
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Mild hidden-info body wall."
+    },
+    {
+      "id": "t016",
+      "name": "Corrosion-Proof Skin",
+      "emoji": "🧪",
+      "color": "Body",
+      "points": 2,
+      "keywords": [
+        "Dominant"
+      ],
+      "text": "Dominant. Cannot be destroyed by discard/acid effects.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "dominantProtection",
+        "params": {
+          "against": "destroy:acid"
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Anti-aggro anchor."
+    },
+    {
+      "id": "t017",
+      "name": "Tardigrade Mode",
+      "emoji": "🐻",
+      "color": "Body",
+      "points": -1,
+      "keywords": [
+        "Dominant"
+      ],
+      "text": "Dominant. Survives every Age wipe. End: +3 if you survived a wipe.",
+      "immediateEffect": null,
+      "endEffect": {
+        "type": "scoreIfCondition",
+        "params": {
+          "cond": "survivedWipe",
+          "amount": 3
+        }
+      },
+      "passiveEffect": {
+        "type": "dominantProtection",
+        "params": {
+          "against": "ageWipe:all"
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Negative base, huge if apocalypse hits."
+    },
+    {
+      "id": "t018",
+      "name": "Antifreeze Blood",
+      "emoji": "❄️",
+      "color": "Body",
+      "points": 1,
+      "keywords": [],
+      "text": "Survives freezing Ages. Immediate: draw 1.",
+      "immediateEffect": {
+        "type": "draw",
+        "params": {
+          "count": 1,
+          "fallback": "self"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Cantrip with cold insurance."
+    },
+    {
+      "id": "t019",
+      "name": "Extra Ribcage",
+      "emoji": "🩻",
+      "color": "Body",
+      "points": 2,
+      "keywords": [],
+      "text": "Passive: the second time a Trait of yours would be destroyed, block it.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "shieldLikeBlock",
+        "params": {
+          "scope": "secondDestroy",
+          "consumes": true
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Layered defense behind Spare Heart."
+    },
+    {
+      "id": "t020",
+      "name": "Marrow Vault",
+      "emoji": "🏦",
+      "color": "Body",
+      "points": 1,
+      "keywords": [],
+      "text": "End: +1 for every 2 Body Traits you control.",
+      "immediateEffect": null,
+      "endEffect": {
+        "type": "scoreIfCondition",
+        "params": {
+          "per": "ownColorBody2",
+          "amount": 1
+        }
+      },
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Body-tribal payoff."
+    },
+    {
+      "id": "t021",
+      "name": "Runaway Growth",
+      "emoji": "📈",
+      "color": "Body",
+      "points": 2,
+      "keywords": [],
+      "text": "End: +1 for each OTHER Body Trait you control.",
+      "immediateEffect": null,
+      "endEffect": {
+        "type": "scoreIfCondition",
+        "params": {
+          "per": "otherColorBody",
+          "amount": 1
+        }
+      },
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Your requested 'increase gene pool' card."
+    },
+    {
+      "id": "t022",
+      "name": "Gene Boom",
+      "emoji": "💥",
+      "color": "Body",
+      "points": 4,
+      "keywords": [],
+      "text": "Immediate: draw 1. High points, no defense.",
+      "immediateEffect": {
+        "type": "draw",
+        "params": {
+          "count": 1,
+          "fallback": "self"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Clean fat-points target for thieves."
+    },
+    {
+      "id": "t023",
+      "name": "Callus Armor",
+      "emoji": "🦶",
+      "color": "Body",
+      "points": 1,
+      "keywords": [
+        "Dominant"
+      ],
+      "text": "Dominant.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Filler Dominant, keeps Dominant count healthy."
+    },
+    {
+      "id": "t024",
+      "name": "Third Eyelid",
+      "emoji": "🫥",
+      "color": "Body",
+      "points": 1,
+      "keywords": [],
+      "text": "Passive: you may look at the top card of the draw pile before your turn.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "noEffect",
+        "params": {
+          "flavor": "peekTopCard"
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Tiny info edge; mostly flavor."
+    },
+    {
+      "id": "t025",
+      "name": "Molting Coat",
+      "emoji": "🧥",
+      "color": "Body",
+      "points": 0,
+      "keywords": [],
+      "text": "Immediate: destroy one of your own Traits, then draw 2.",
+      "immediateEffect": {
+        "type": "destroyOwnTrait",
+        "params": {
+          "then": {
+            "type": "draw",
+            "params": {
+              "count": 2
+            }
+          },
+          "fallback": "lowestPointNonDominantTrait"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Sacrifice engine for discard/revive combos."
+    },
+    {
+      "id": "t026",
+      "name": "Sasquatch Physique",
+      "emoji": "🦍",
+      "color": "Body",
+      "points": 5,
+      "keywords": [],
+      "text": "Highest-point Body Trait. Cannot use its own effect.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Beacon for theft; balances high raw points."
+    },
+    {
+      "id": "t027",
+      "name": "Ambush Fangs",
+      "emoji": "🦷",
+      "color": "Predatory",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: destroy the lowest-point non-Dominant Trait of the opponent with the most Gene Pool points.",
+      "immediateEffect": {
+        "type": "destroyOpponentTrait",
+        "params": {
+          "fallback": "lowestPointNonDominantTrait",
+          "target": "opponentHighestGenePoolPoints"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Core removal, auto-targets leader."
+    },
+    {
+      "id": "t028",
+      "name": "Kleptomandible",
+      "emoji": "🦞",
+      "color": "Predatory",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: steal a random card from the hand of the opponent with the most cards.",
+      "immediateEffect": {
+        "type": "stealRandom",
+        "params": {
+          "zone": "hand",
+          "target": "opponentMostCardsInHand"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Hand disruption + card advantage."
+    },
+    {
+      "id": "t029",
+      "name": "Sticky Tongue",
+      "emoji": "👅",
+      "color": "Predatory",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: steal a chosen non-Dominant Trait from a public Gene Pool.",
+      "immediateEffect": {
+        "type": "stealChosenPublicTrait",
+        "params": {
+          "fallback": "highestPointNonDominantTrait",
+          "target": "opponentHighestGenePoolPoints"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Premium theft; needs choice UI, has auto fallback."
+    },
+    {
+      "id": "t030",
+      "name": "Neurotoxin Sac",
+      "emoji": "☠️",
+      "color": "Predatory",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: poison a non-Dominant Trait; it is destroyed at the next Stabilize.",
+      "immediateEffect": {
+        "type": "poison",
+        "params": {
+          "fallback": "randomNonDominantTrait",
+          "target": "nextOpponent"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Delayed removal; answerable before Stabilize."
+    },
+    {
+      "id": "t031",
+      "name": "Delayed Venom",
+      "emoji": "⏱️",
+      "color": "Predatory",
+      "points": 0,
+      "keywords": [],
+      "text": "Immediate: poison the highest-point non-Dominant Trait in play. It dies in TWO Stabilizes.",
+      "immediateEffect": {
+        "type": "delayedPoison",
+        "params": {
+          "turns": 2,
+          "fallback": "highestPointNonDominantTrait",
+          "target": "opponentHighestGenePoolPoints"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Slow but hits fat targets."
+    },
+    {
+      "id": "t032",
+      "name": "Pickpocket Palps",
+      "emoji": "🤏",
+      "color": "Predatory",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: steal 1 random card from the next opponent's hand.",
+      "immediateEffect": {
+        "type": "stealRandom",
+        "params": {
+          "zone": "hand",
+          "target": "nextOpponent"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Reliable low-variance theft."
+    },
+    {
+      "id": "t033",
+      "name": "Bone Saw Claw",
+      "emoji": "🪚",
+      "color": "Predatory",
+      "points": 2,
+      "keywords": [],
+      "text": "Immediate: destroy the most recently played non-Dominant Trait in play.",
+      "immediateEffect": {
+        "type": "destroyOpponentTrait",
+        "params": {
+          "fallback": "mostRecentTrait",
+          "target": "nextOpponent"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Punishes the last combo piece played."
+    },
+    {
+      "id": "t034",
+      "name": "Acid Spit",
+      "emoji": "🧫",
+      "color": "Predatory",
+      "points": 0,
+      "keywords": [],
+      "text": "Immediate: destroy a random non-Dominant Trait and send it to its owner's discard.",
+      "immediateEffect": {
+        "type": "destroyOpponentTrait",
+        "params": {
+          "fallback": "randomNonDominantTrait",
+          "target": "opponentHighestGenePoolPoints",
+          "tag": "acid"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Fuels opponents' discard decks — costed at 0."
+    },
+    {
+      "id": "t035",
+      "name": "Heartbreaker",
+      "emoji": "💔",
+      "color": "Predatory",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: destroy a target's Spare Heart or Extra Ribcage if it has one; otherwise destroy its most recent non-Dominant Trait.",
+      "immediateEffect": {
+        "type": "destroyOpponentTrait",
+        "params": {
+          "fallback": "mostRecentTrait",
+          "target": "opponentHighestGenePoolPoints",
+          "preferKill": [
+            "Spare Heart",
+            "Extra Ribcage"
+          ]
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Requested 'girl breaks his heart' card; strips defensive organs first."
+    },
+    {
+      "id": "t036",
+      "name": "Death Roll",
+      "emoji": "🐊",
+      "color": "Predatory",
+      "points": 2,
+      "keywords": [],
+      "text": "Immediate: destroy the highest-point non-Dominant Trait of the opponent with the most points.",
+      "immediateEffect": {
+        "type": "destroyOpponentTrait",
+        "params": {
+          "fallback": "highestPointNonDominantTrait",
+          "target": "opponentHighestGenePoolPoints"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Big-game hunter; hits leaders hard."
+    },
+    {
+      "id": "t037",
+      "name": "Cannibal Reflex",
+      "emoji": "😈",
+      "color": "Predatory",
+      "points": 0,
+      "keywords": [],
+      "text": "Immediate: destroy one of your own Traits; steal a random Trait from any opponent.",
+      "immediateEffect": {
+        "type": "destroyOwnTrait",
+        "params": {
+          "then": {
+            "type": "stealRandom",
+            "params": {
+              "zone": "pool"
+            }
+          },
+          "fallback": "lowestPointNonDominantTrait",
+          "target": "opponentHighestGenePoolPoints"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Sac-into-theft, combos with revive."
+    },
+    {
+      "id": "t038",
+      "name": "Territorial Roar",
+      "emoji": "🦁",
+      "color": "Predatory",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: every opponent discards 1 random card from hand.",
+      "immediateEffect": {
+        "type": "discardRandomOpponent",
+        "params": {
+          "target": "allOpponents",
+          "count": 1
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Board-wide hand attack."
+    },
+    {
+      "id": "t039",
+      "name": "Marrow Thief",
+      "emoji": "🪦",
+      "color": "Predatory",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: steal the most recent card from the largest discard pile.",
+      "immediateEffect": {
+        "type": "playFromDiscard",
+        "params": {
+          "fromOwner": "opponent",
+          "fallback": "mostRecentDiscard",
+          "target": "opponentLargestDiscard"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Discard-pile raiding."
+    },
+    {
+      "id": "t040",
+      "name": "Gene Splicer",
+      "emoji": "🧬",
+      "color": "Predatory",
+      "points": 2,
+      "keywords": [],
+      "text": "Immediate: steal a random Trait, then copy its immediate effect.",
+      "immediateEffect": {
+        "type": "stealRandom",
+        "params": {
+          "zone": "pool",
+          "then": {
+            "type": "copyImmediate",
+            "params": {}
+          },
+          "target": "opponentHighestGenePoolPoints"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "RISKY — steal + copy tempo swing. Watch in balance pass."
+    },
+    {
+      "id": "t041",
+      "name": "Apex Ambusher",
+      "emoji": "🐆",
+      "color": "Predatory",
+      "points": 3,
+      "keywords": [],
+      "text": "Immediate: skip the next player's turn.",
+      "immediateEffect": {
+        "type": "skipNextPlayer",
+        "params": {
+          "target": "nextOpponent"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Tempo denial with solid body points."
+    },
+    {
+      "id": "t042",
+      "name": "Toxic Molt",
+      "emoji": "🐍",
+      "color": "Predatory",
+      "points": -1,
+      "keywords": [],
+      "text": "When this is destroyed, poison a random opponent Trait.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "poison",
+        "params": {
+          "trigger": "onSelfDestroy",
+          "fallback": "randomNonDominantTrait",
+          "target": "nextOpponent"
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Negative points, punishes removal."
+    },
+    {
+      "id": "t043",
+      "name": "Beak Full of Debt",
+      "emoji": "🪙",
+      "color": "Predatory",
+      "points": 1,
+      "keywords": [],
+      "text": "End: the opponent with the most points scores -2. You score +1.",
+      "immediateEffect": null,
+      "endEffect": {
+        "type": "scoreIfCondition",
+        "params": {
+          "cond": "leaderPenalty",
+          "self": 1,
+          "targetPenalty": 2,
+          "target": "opponentHighestGenePoolPoints"
+        }
+      },
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Requested 'decrease gene pool' payoff, endgame."
+    },
+    {
+      "id": "t044",
+      "name": "Gene Pool Drain",
+      "emoji": "🕳️",
+      "color": "Predatory",
+      "points": 0,
+      "keywords": [],
+      "text": "Immediate: destroy the two lowest-point non-Dominant Traits of the point leader.",
+      "immediateEffect": {
+        "type": "destroyOpponentTrait",
+        "params": {
+          "count": 2,
+          "fallback": "lowestPointNonDominantTrait",
+          "target": "opponentHighestGenePoolPoints"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Requested 'decrease gene pool' card; heavy tempo, 0 pts."
+    },
+    {
+      "id": "t045",
+      "name": "Poison Dart Skin",
+      "emoji": "🐸",
+      "color": "Predatory",
+      "points": 1,
+      "keywords": [
+        "Dominant"
+      ],
+      "text": "Dominant. When an opponent destroys any of your Traits, poison a random Trait of theirs.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "poison",
+        "params": {
+          "trigger": "onOpponentDestroy",
+          "fallback": "randomNonDominantTrait",
+          "target": "nextOpponent"
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Dominant deterrent, low point efficiency by design."
+    },
+    {
+      "id": "t046",
+      "name": "Backstab Stinger",
+      "emoji": "🗡️",
+      "color": "Predatory",
+      "points": 1,
+      "keywords": [
+        "Late"
+      ],
+      "text": "Late. Immediate: destroy one non-Dominant Trait played this Age.",
+      "immediateEffect": {
+        "type": "destroyOpponentTrait",
+        "params": {
+          "fallback": "mostRecentTrait",
+          "target": "opponentHighestGenePoolPoints",
+          "filter": "playedThisAge"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Answers combos assembled during the Age."
+    },
+    {
+      "id": "t047",
+      "name": "Rot Touch",
+      "emoji": "🍂",
+      "color": "Predatory",
+      "points": 0,
+      "keywords": [],
+      "text": "Immediate: destroy the single lowest-point Trait in the whole game.",
+      "immediateEffect": {
+        "type": "destroyOpponentTrait",
+        "params": {
+          "fallback": "globalLowestPointNonDominant",
+          "target": "anyPlayer"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Cheap removal, cannot hit fat targets."
+    },
+    {
+      "id": "t048",
+      "name": "Fang Tax",
+      "emoji": "💸",
+      "color": "Predatory",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: each opponent gives you 1 card or discards 2 (server auto-picks the worse for them).",
+      "immediateEffect": {
+        "type": "stealRandom",
+        "params": {
+          "zone": "hand",
+          "altDiscard": 2,
+          "target": "allOpponents"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Multiplayer tax; auto-resolves choice."
+    },
+    {
+      "id": "t049",
+      "name": "Culling Instinct",
+      "emoji": "🌗",
+      "color": "Predatory",
+      "points": 2,
+      "keywords": [],
+      "text": "Immediate: if any opponent has more Traits than you, destroy one of their non-Dominant Traits.",
+      "immediateEffect": {
+        "type": "destroyOpponentTrait",
+        "params": {
+          "condition": "opponentBiggerPool",
+          "fallback": "lowestPointNonDominantTrait",
+          "target": "opponentHighestGenePoolPoints"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Catch-up removal, dead when ahead."
+    },
+    {
+      "id": "t050",
+      "name": "Constrictor Coil",
+      "emoji": "🐲",
+      "color": "Predatory",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: the next opponent skips their draw next turn.",
+      "immediateEffect": {
+        "type": "skipNextPlayer",
+        "params": {
+          "partial": "drawOnly",
+          "target": "nextOpponent"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Soft tempo hit."
+    },
+    {
+      "id": "t051",
+      "name": "Hive Mind",
+      "emoji": "🐝",
+      "color": "Social",
+      "points": 1,
+      "keywords": [],
+      "text": "End: +1 for each other Social Trait you control.",
+      "immediateEffect": null,
+      "endEffect": {
+        "type": "scoreIfCondition",
+        "params": {
+          "per": "otherColorSocial",
+          "amount": 1
+        }
+      },
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Swarm-tribal core payoff."
+    },
+    {
+      "id": "t052",
+      "name": "Larval Cloud",
+      "emoji": "🐛",
+      "color": "Social",
+      "points": 0,
+      "keywords": [],
+      "text": "Immediate: draw 1 for every 2 Social Traits you already control (max 3).",
+      "immediateEffect": {
+        "type": "draw",
+        "params": {
+          "count": "socialCount2",
+          "max": 3,
+          "fallback": "self"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Scales with a built board."
+    },
+    {
+      "id": "t053",
+      "name": "Bite Choir",
+      "emoji": "🎶",
+      "color": "Social",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: if you control 3+ Social Traits, every opponent discards 1.",
+      "immediateEffect": {
+        "type": "discardRandomOpponent",
+        "params": {
+          "condition": "ownSocial3",
+          "target": "allOpponents",
+          "count": 1
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Swarm aggro payoff."
+    },
+    {
+      "id": "t054",
+      "name": "Locust Bloom",
+      "emoji": "🦗",
+      "color": "Social",
+      "points": 2,
+      "keywords": [],
+      "text": "End: +1 per Social Trait across ALL Gene Pools, max +5.",
+      "immediateEffect": null,
+      "endEffect": {
+        "type": "scoreForUniqueColors",
+        "params": {
+          "countColor": "Social",
+          "scope": "all",
+          "max": 5
+        }
+      },
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Rewards a swarmy table, not just you."
+    },
+    {
+      "id": "t055",
+      "name": "Mimic Octopus",
+      "emoji": "🐙",
+      "color": "Social",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: copy the immediate effect of any Trait already in play.",
+      "immediateEffect": {
+        "type": "copyImmediate",
+        "params": {
+          "fallback": "mostRecentTrait",
+          "target": "anyPlayer"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Flexible combo glue."
+    },
+    {
+      "id": "t056",
+      "name": "Cuckoo Egg",
+      "emoji": "🥚",
+      "color": "Social",
+      "points": -2,
+      "keywords": [
+        "Parasite"
+      ],
+      "text": "Parasite. Place into an opponent's Gene Pool. Its owner scores it as -2.",
+      "immediateEffect": {
+        "type": "placeParasite",
+        "params": {
+          "value": -2,
+          "target": "opponentHighestGenePoolPoints"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Cheap curse; you play it, they suffer."
+    },
+    {
+      "id": "t057",
+      "name": "Peer Pressure",
+      "emoji": "🫂",
+      "color": "Social",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: the next opponent must discard their highest-point card in hand (server picks).",
+      "immediateEffect": {
+        "type": "discardRandomOpponent",
+        "params": {
+          "pick": "highest",
+          "target": "nextOpponent"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Targeted hand attack, no UI needed."
+    },
+    {
+      "id": "t058",
+      "name": "Symbiote Handshake",
+      "emoji": "🤝",
+      "color": "Social",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: you and the opponent with the fewest points each draw 1.",
+      "immediateEffect": {
+        "type": "draw",
+        "params": {
+          "count": 1,
+          "alsoTarget": "opponentLowestGenePoolPoints"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Politics card; softens threat while you build."
+    },
+    {
+      "id": "t059",
+      "name": "Pheromone Trail",
+      "emoji": "🌸",
+      "color": "Social",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: reverse turn order.",
+      "immediateEffect": {
+        "type": "reverseTurnOrder",
+        "params": {}
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Cheap order control for Late/skip setups."
+    },
+    {
+      "id": "t060",
+      "name": "Waggle Dance",
+      "emoji": "💃",
+      "color": "Social",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: choose who takes the next turn (default: player with fewest Traits).",
+      "immediateEffect": {
+        "type": "skipNextPlayer",
+        "params": {
+          "chooseNext": true,
+          "fallback": "opponentSmallestPool"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Turn routing with auto fallback."
+    },
+    {
+      "id": "t061",
+      "name": "Chameleon Coat",
+      "emoji": "🦎",
+      "color": "Social",
+      "points": 1,
+      "keywords": [],
+      "text": "Passive: this counts as the color of the Trait to its immediate left.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "copyTrait",
+        "params": {
+          "aspect": "colorOfLeftNeighbor"
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Adjacency-combo enabler across colors."
+    },
+    {
+      "id": "t062",
+      "name": "Angry Professor",
+      "emoji": "👨‍🏫",
+      "color": "Social",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: every opponent discards 1 random card. 'Revise and resubmit.'",
+      "immediateEffect": {
+        "type": "discardRandomOpponent",
+        "params": {
+          "target": "allOpponents",
+          "count": 1
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Requested card. Table-wide mild discard."
+    },
+    {
+      "id": "t063",
+      "name": "Asian Parent",
+      "emoji": "🩴",
+      "color": "Social",
+      "points": 0,
+      "keywords": [],
+      "text": "End: if you have the MOST Gene Pool points, +5. If not, -2. 'Why not 100%?'",
+      "immediateEffect": null,
+      "endEffect": {
+        "type": "scoreIfCondition",
+        "params": {
+          "cond": "isPointLeader",
+          "ifTrue": 5,
+          "ifFalse": -2
+        }
+      },
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Requested card. Swingy but capped; rewards committing to the lead."
+    },
+    {
+      "id": "t064",
+      "name": "Group Project",
+      "emoji": "📚",
+      "color": "Social",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: swap 1 random card with the opponent who has the most cards. 'Someone did no work.'",
+      "immediateEffect": {
+        "type": "stealRandom",
+        "params": {
+          "zone": "hand",
+          "giveBack": 1,
+          "target": "opponentMostCardsInHand"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Two-way hand shuffle."
+    },
+    {
+      "id": "t065",
+      "name": "Gossip Web",
+      "emoji": "🕸️",
+      "color": "Social",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: reveal the full hand (with card text) of the point leader to everyone.",
+      "immediateEffect": {
+        "type": "revealHandFullText",
+        "params": {
+          "target": "opponentHighestGenePoolPoints"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Public-information card, full text."
+    },
+    {
+      "id": "t066",
+      "name": "Snitch",
+      "emoji": "🐀",
+      "color": "Social",
+      "points": 0,
+      "keywords": [],
+      "text": "Immediate: reveal an opponent's hand, then steal 1 named card from it.",
+      "immediateEffect": {
+        "type": "revealHandFullText",
+        "params": {
+          "then": {
+            "type": "stealRandom",
+            "params": {
+              "zone": "hand",
+              "pick": "chosen"
+            }
+          },
+          "target": "opponentMostCardsInHand"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Info into theft; auto-picks best if no choice."
+    },
+    {
+      "id": "t067",
+      "name": "Tiny Violin",
+      "emoji": "🎻",
+      "color": "Social",
+      "points": 1,
+      "keywords": [],
+      "text": "Passive: whenever an opponent loses a Trait, draw 1. 'So sad.'",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "draw",
+        "params": {
+          "count": 1,
+          "trigger": "onOpponentTraitDestroyed",
+          "fallback": "self"
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Combos with Heartbreaker / removal decks."
+    },
+    {
+      "id": "t068",
+      "name": "Conga Line",
+      "emoji": "🎉",
+      "color": "Social",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: reverse turn order AND skip the new next player.",
+      "immediateEffect": {
+        "type": "reverseTurnOrder",
+        "params": {
+          "then": {
+            "type": "skipNextPlayer",
+            "params": {
+              "target": "nextOpponent"
+            }
+          }
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Double order swing; strong tempo."
+    },
+    {
+      "id": "t069",
+      "name": "Rumor Mill",
+      "emoji": "📢",
+      "color": "Social",
+      "points": -1,
+      "keywords": [
+        "Parasite"
+      ],
+      "text": "Parasite. Place on an opponent. While placed, its host cannot use immediate effects.",
+      "immediateEffect": {
+        "type": "placeParasite",
+        "params": {
+          "value": -1,
+          "disable": "immediate",
+          "target": "opponentHighestGenePoolPoints"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Shuts down a combo engine, not just points."
+    },
+    {
+      "id": "t070",
+      "name": "Nepotism",
+      "emoji": "👔",
+      "color": "Social",
+      "points": 2,
+      "keywords": [],
+      "text": "Immediate: if the Trait to your left shares this color, play an extra Trait.",
+      "immediateEffect": {
+        "type": "playExtra",
+        "params": {
+          "count": 1,
+          "condition": "leftNeighborSameColor",
+          "fallback": "self"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Adjacency combo enabler."
+    },
+    {
+      "id": "t071",
+      "name": "Groupthink",
+      "emoji": "🧠",
+      "color": "Social",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: copy the immediate effect of the last Trait played by any player this turn.",
+      "immediateEffect": {
+        "type": "copyImmediate",
+        "params": {
+          "filter": "lastPlayedThisTurn",
+          "fallback": "mostRecentTrait",
+          "target": "anyPlayer"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Reactive copy; needs a target to exist."
+    },
+    {
+      "id": "t072",
+      "name": "Molt Party",
+      "emoji": "🎊",
+      "color": "Social",
+      "points": 0,
+      "keywords": [],
+      "text": "Immediate: every player (including you) discards 1, then draws 1.",
+      "immediateEffect": {
+        "type": "discardRandomOpponent",
+        "params": {
+          "target": "allPlayers",
+          "count": 1,
+          "then": {
+            "type": "draw",
+            "params": {
+              "count": 1
+            }
+          }
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Symmetric churn, feeds discard decks."
+    },
+    {
+      "id": "t073",
+      "name": "Cuckoo Chorus",
+      "emoji": "🐦",
+      "color": "Social",
+      "points": -1,
+      "keywords": [
+        "Parasite"
+      ],
+      "text": "Parasite. Host scores -1; you score +1 for each parasite you've placed.",
+      "immediateEffect": {
+        "type": "placeParasite",
+        "params": {
+          "value": -1,
+          "target": "opponentLowestGenePoolPoints"
+        }
+      },
+      "endEffect": {
+        "type": "scoreForOpponentParasites",
+        "params": {
+          "perParasite": 1
+        }
+      },
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Parasite payoff engine."
+    },
+    {
+      "id": "t074",
+      "name": "Flash Mob",
+      "emoji": "🕺",
+      "color": "Social",
+      "points": 2,
+      "keywords": [],
+      "text": "Immediate: play an extra Social Trait this turn.",
+      "immediateEffect": {
+        "type": "playExtra",
+        "params": {
+          "count": 1,
+          "restrictColor": "Social",
+          "fallback": "self"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Swarm chain enabler."
+    },
+    {
+      "id": "t075",
+      "name": "Junk DNA",
+      "emoji": "🧷",
+      "color": "Weird",
+      "points": 0,
+      "keywords": [],
+      "text": "End: +1 for each other Weird Trait you control.",
+      "immediateEffect": null,
+      "endEffect": {
+        "type": "scoreIfCondition",
+        "params": {
+          "per": "otherColorWeird",
+          "amount": 1
+        }
+      },
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Weird-tribal filler payoff."
+    },
+    {
+      "id": "t076",
+      "name": "Retrovirus",
+      "emoji": "🦠",
+      "color": "Weird",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: play a Trait from any discard pile as if it were yours.",
+      "immediateEffect": {
+        "type": "playFromDiscard",
+        "params": {
+          "fromOwner": "any",
+          "fallback": "mostRecentDiscard",
+          "target": "opponentLargestDiscard"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Discard-pile value."
+    },
+    {
+      "id": "t077",
+      "name": "Horizontal Gene Transfer",
+      "emoji": "🔀",
+      "color": "Weird",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: copy any non-Dominant Trait in play into your Gene Pool (a token copy, 0 points).",
+      "immediateEffect": {
+        "type": "copyTrait",
+        "params": {
+          "asToken": true,
+          "fallback": "highestPointNonDominantTrait",
+          "target": "opponentHighestGenePoolPoints"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "RISKY copy — token has no points but keeps effects."
+    },
+    {
+      "id": "t078",
+      "name": "Frameshift",
+      "emoji": "↩️",
+      "color": "Weird",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: reverse turn order.",
+      "immediateEffect": {
+        "type": "reverseTurnOrder",
+        "params": {}
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Second copy of order control in Weird."
+    },
+    {
+      "id": "t079",
+      "name": "Point Mutation",
+      "emoji": "🎯",
+      "color": "Weird",
+      "points": 0,
+      "keywords": [],
+      "text": "Immediate: change the color of any one Trait in play (yours or theirs).",
+      "immediateEffect": {
+        "type": "copyTrait",
+        "params": {
+          "aspect": "recolor",
+          "fallback": "randomNonDominantTrait",
+          "target": "self"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Breaks or builds tribal/adjacency combos."
+    },
+    {
+      "id": "t080",
+      "name": "Chaos Codon",
+      "emoji": "🎲",
+      "color": "Weird",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: trigger a random supported effect (server RNG).",
+      "immediateEffect": {
+        "type": "copyImmediate",
+        "params": {
+          "random": true,
+          "fallback": "self"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "High variance; flagged in balance pass."
+    },
+    {
+      "id": "t081",
+      "name": "Time Loop",
+      "emoji": "🔁",
+      "color": "Weird",
+      "points": 2,
+      "keywords": [],
+      "text": "Immediate: play one extra Trait this turn.",
+      "immediateEffect": {
+        "type": "playExtra",
+        "params": {
+          "count": 1,
+          "fallback": "self"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Generic extra play; watch chains."
+    },
+    {
+      "id": "t082",
+      "name": "Necrotic Bloom",
+      "emoji": "🥀",
+      "color": "Weird",
+      "points": 1,
+      "keywords": [],
+      "text": "End: +1 for every 2 cards in your discard pile, max +5.",
+      "immediateEffect": null,
+      "endEffect": {
+        "type": "scoreForDiscardPile",
+        "params": {
+          "perCard": 1,
+          "div": 2,
+          "max": 5
+        }
+      },
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Discard-pile scoring core."
+    },
+    {
+      "id": "t083",
+      "name": "Grave Robber",
+      "emoji": "⚰️",
+      "color": "Weird",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: revive any Trait from any discard pile into your Gene Pool.",
+      "immediateEffect": {
+        "type": "reviveFromDiscard",
+        "params": {
+          "owner": "any",
+          "fallback": "mostRecentDiscard",
+          "target": "opponentLargestDiscard"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Strong recursion; single-use per copy."
+    },
+    {
+      "id": "t084",
+      "name": "Second Draft",
+      "emoji": "📝",
+      "color": "Weird",
+      "points": 0,
+      "keywords": [
+        "Late"
+      ],
+      "text": "Late. Immediate: return one of your Traits from the discard to your hand.",
+      "immediateEffect": {
+        "type": "reviveFromDiscard",
+        "params": {
+          "owner": "self",
+          "toZone": "hand",
+          "fallback": "mostRecentDiscard"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Late-window recursion."
+    },
+    {
+      "id": "t085",
+      "name": "Paradox Egg",
+      "emoji": "🪺",
+      "color": "Weird",
+      "points": -1,
+      "keywords": [
+        "Late"
+      ],
+      "text": "Late. When played, immediately take another turn.",
+      "immediateEffect": {
+        "type": "playExtra",
+        "params": {
+          "count": 1,
+          "fullTurn": true,
+          "fallback": "self"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Duplicate egg emoji flagged; strong Late tempo, negative pts."
+    },
+    {
+      "id": "t086",
+      "name": "Butterfly Effect",
+      "emoji": "🦋",
+      "color": "Weird",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: reverse turn order and every player passes 1 random card left.",
+      "immediateEffect": {
+        "type": "reverseTurnOrder",
+        "params": {
+          "then": {
+            "type": "swapHands",
+            "params": {
+              "mode": "rotateLeft1"
+            }
+          }
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Table-wide chaos."
+    },
+    {
+      "id": "t087",
+      "name": "Schrodinger's Cell",
+      "emoji": "📦",
+      "color": "Weird",
+      "points": 2,
+      "keywords": [],
+      "text": "End: flip a server coin — this is worth 5 or -1.",
+      "immediateEffect": null,
+      "endEffect": {
+        "type": "scoreIfCondition",
+        "params": {
+          "cond": "coinFlip",
+          "ifTrue": 5,
+          "ifFalse": -1
+        }
+      },
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Gambly endgame swing."
+    },
+    {
+      "id": "t088",
+      "name": "Mutagen Bath",
+      "emoji": "🛁",
+      "color": "Weird",
+      "points": 0,
+      "keywords": [],
+      "text": "Immediate: every non-Dominant Trait in play becomes Weird until end of game.",
+      "immediateEffect": {
+        "type": "copyTrait",
+        "params": {
+          "aspect": "recolorAll",
+          "to": "Weird",
+          "target": "allPlayers"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Nukes tribal/adjacency scoring globally."
+    },
+    {
+      "id": "t089",
+      "name": "Rewind Enzyme",
+      "emoji": "⏪",
+      "color": "Weird",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: return the most recently played non-Dominant Trait to its owner's hand.",
+      "immediateEffect": {
+        "type": "reviveFromDiscard",
+        "params": {
+          "mode": "bounce",
+          "fallback": "mostRecentTrait",
+          "target": "nextOpponent"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Soft removal / undo tempo."
+    },
+    {
+      "id": "t090",
+      "name": "Fossil Record",
+      "emoji": "🦕",
+      "color": "Weird",
+      "points": 2,
+      "keywords": [],
+      "text": "End: +1 for each unique color present in your discard pile.",
+      "immediateEffect": null,
+      "endEffect": {
+        "type": "scoreForDiscardPile",
+        "params": {
+          "mode": "uniqueColors"
+        }
+      },
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Rewards diverse discards."
+    },
+    {
+      "id": "t091",
+      "name": "Doppelganger",
+      "emoji": "👥",
+      "color": "Weird",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: copy the passive effect of an opponent's Trait for the rest of the game.",
+      "immediateEffect": {
+        "type": "copyTrait",
+        "params": {
+          "aspect": "passive",
+          "fallback": "highestPointNonDominantTrait",
+          "target": "opponentHighestGenePoolPoints"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Steals engine value without theft."
+    },
+    {
+      "id": "t092",
+      "name": "Prion Cascade",
+      "emoji": "🧩",
+      "color": "Weird",
+      "points": -2,
+      "keywords": [
+        "Parasite"
+      ],
+      "text": "Parasite. Host scores -2. When host destroys a Trait, this spreads a copy to another player.",
+      "immediateEffect": {
+        "type": "placeParasite",
+        "params": {
+          "value": -2,
+          "spreadOnDestroy": true,
+          "target": "opponentHighestGenePoolPoints"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Curse that multiplies; strong at aggro tables."
+    },
+    {
+      "id": "t093",
+      "name": "Entropy Well",
+      "emoji": "🌪️",
+      "color": "Weird",
+      "points": 0,
+      "keywords": [],
+      "text": "Immediate: every player destroys their own lowest-point non-Dominant Trait.",
+      "immediateEffect": {
+        "type": "destroyOpponentTrait",
+        "params": {
+          "target": "allPlayers",
+          "fallback": "lowestPointNonDominantTrait",
+          "selfInclusive": true
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "RISKY symmetric wipe; flagged."
+    },
+    {
+      "id": "t094",
+      "name": "Quantum Molt",
+      "emoji": "🌀",
+      "color": "Weird",
+      "points": 1,
+      "keywords": [
+        "Late"
+      ],
+      "text": "Late. Immediate: play an extra Trait this turn.",
+      "immediateEffect": {
+        "type": "playExtra",
+        "params": {
+          "count": 1,
+          "fallback": "self"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Duplicate spiral emoji flagged; Late tempo."
+    },
+    {
+      "id": "t095",
+      "name": "Recursive Larva",
+      "emoji": "♾️",
+      "color": "Weird",
+      "points": 0,
+      "keywords": [],
+      "text": "Immediate: if you played a Trait earlier this turn, play another.",
+      "immediateEffect": {
+        "type": "playExtra",
+        "params": {
+          "count": 1,
+          "condition": "playedEarlierThisTurn",
+          "fallback": "self"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Chain payoff; needs a prior play."
+    },
+    {
+      "id": "t096",
+      "name": "Deja Vu",
+      "emoji": "🔮",
+      "color": "Weird",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: copy the effect of the current Age.",
+      "immediateEffect": {
+        "type": "copyImmediate",
+        "params": {
+          "source": "currentAge",
+          "fallback": "self"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Age synergy; variance follows the Age."
+    },
+    {
+      "id": "t097",
+      "name": "Null Allele",
+      "emoji": "0️⃣",
+      "color": "Weird",
+      "points": -3,
+      "keywords": [
+        "Dominant"
+      ],
+      "text": "Dominant. Cannot be destroyed, stolen, or swapped. End: +6.",
+      "immediateEffect": null,
+      "endEffect": {
+        "type": "scoreIfCondition",
+        "params": {
+          "cond": "always",
+          "amount": 6
+        }
+      },
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Duplicate hole emoji flagged; net +3 locked points, no board impact."
+    },
+    {
+      "id": "t098",
+      "name": "Glitch in the Germline",
+      "emoji": "🐞",
+      "color": "Weird",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: copy the immediate effect of the last Trait YOU played.",
+      "immediateEffect": {
+        "type": "copyImmediate",
+        "params": {
+          "filter": "yourLastPlay",
+          "fallback": "self"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Self-combo doubler."
+    },
+    {
+      "id": "t099",
+      "name": "Chow Mein",
+      "emoji": "🍜",
+      "color": "Weird",
+      "points": 1,
+      "keywords": [],
+      "text": "Passive: if adjacent to Orange Chicken, both score +3 at end (Combo Meal).",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "scoreIfCondition",
+        "params": {
+          "cond": "adjacentTo:Orange Chicken",
+          "amount": 3
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Requested card; adjacency combo half #1."
+    },
+    {
+      "id": "t100",
+      "name": "Orange Chicken",
+      "emoji": "🍗",
+      "color": "Body",
+      "points": 1,
+      "keywords": [],
+      "text": "Passive: if adjacent to Chow Mein, both score +3 at end (Combo Meal).",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "scoreIfCondition",
+        "params": {
+          "cond": "adjacentTo:Chow Mein",
+          "amount": 3
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Requested card; adjacency combo half #2. Cross-color pairing."
+    },
+    {
+      "id": "t101",
+      "name": "Kimchi Fried Rice",
+      "emoji": "🍚",
+      "color": "Body",
+      "points": 1,
+      "keywords": [],
+      "text": "Passive: +1 for each food Trait adjacent to it. Immune to poison (fermented).",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "scoreIfCondition",
+        "params": {
+          "cond": "adjacentFoodCount",
+          "amount": 1
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Third food piece; deepens the combo family, anti-poison flavor."
+    },
+    {
+      "id": "t102",
+      "name": "Boba",
+      "emoji": "🧋",
+      "color": "Social",
+      "points": 0,
+      "keywords": [],
+      "text": "Immediate: draw 1. Passive: counts as a food Trait for Combo Meal.",
+      "immediateEffect": {
+        "type": "draw",
+        "params": {
+          "count": 1,
+          "fallback": "self"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "noEffect",
+        "params": {
+          "tag": "food"
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Cheap food glue + cantrip."
+    },
+    {
+      "id": "t103",
+      "name": "Spicy Ramen Challenge",
+      "emoji": "🌶️",
+      "color": "Predatory",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: poison your own lowest Trait; if you survive to Stabilize, draw 3.",
+      "immediateEffect": {
+        "type": "poison",
+        "params": {
+          "target": "self",
+          "reward": {
+            "type": "draw",
+            "params": {
+              "count": 3
+            }
+          },
+          "fallback": "lowestPointNonDominantTrait"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Risk/reward food-themed aggro."
+    },
+    {
+      "id": "t104",
+      "name": "Contrarian Gene",
+      "emoji": "🙃",
+      "color": "Weird",
+      "points": 1,
+      "keywords": [],
+      "text": "End: +5 if you have the FEWEST Gene Pool points (excluding this).",
+      "immediateEffect": null,
+      "endEffect": {
+        "type": "scoreForLowPoints",
+        "params": {
+          "amount": 5
+        }
+      },
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Underdog payoff; anti-leader-race."
+    },
+    {
+      "id": "t105",
+      "name": "Rainbow Chromosome",
+      "emoji": "🌈",
+      "color": "Weird",
+      "points": 2,
+      "keywords": [],
+      "text": "End: +2 for each of the 4 colors present in your Gene Pool.",
+      "immediateEffect": null,
+      "endEffect": {
+        "type": "scoreForUniqueColors",
+        "params": {
+          "perColor": 2,
+          "scope": "self"
+        }
+      },
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Rewards balanced 4-color boards; caps at +8 raw but points band respected via base 2."
+    },
+    {
+      "id": "t106",
+      "name": "Sleeper Cell",
+      "emoji": "💤",
+      "color": "Predatory",
+      "points": 0,
+      "keywords": [
+        "Late"
+      ],
+      "text": "Late. Immediate: steal a random Trait from the point leader.",
+      "immediateEffect": {
+        "type": "stealRandom",
+        "params": {
+          "zone": "pool",
+          "target": "opponentHighestGenePoolPoints"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Late theft; punishes ending ahead."
+    },
+    {
+      "id": "t107",
+      "name": "Living Fossil",
+      "emoji": "🐚",
+      "color": "Body",
+      "points": 3,
+      "keywords": [
+        "Dominant"
+      ],
+      "text": "Dominant. Cannot be copied.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "dominantProtection",
+        "params": {
+          "against": "copy"
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Safe fat Dominant points, anti-copy."
+    },
+    {
+      "id": "t108",
+      "name": "Immortal Jellyfish",
+      "emoji": "🪼",
+      "color": "Body",
+      "points": -1,
+      "keywords": [
+        "Dominant"
+      ],
+      "text": "Dominant. When destroyed by an Age, return to your hand instead.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "dominantProtection",
+        "params": {
+          "against": "ageWipe:all",
+          "mode": "bounceToHand"
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Recurring survivor, negative base pts."
+    },
+    {
+      "id": "t109",
+      "name": "Tapeworm",
+      "emoji": "🪱",
+      "color": "Predatory",
+      "points": -2,
+      "keywords": [
+        "Parasite"
+      ],
+      "text": "Parasite. Host draws 1 fewer card each turn.",
+      "immediateEffect": {
+        "type": "placeParasite",
+        "params": {
+          "value": -2,
+          "disable": "drawMinus1",
+          "target": "opponentMostCardsInHand"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Attacks the engine, not the score."
+    },
+    {
+      "id": "t110",
+      "name": "Zombie Ant Fungus",
+      "emoji": "🍄",
+      "color": "Weird",
+      "points": -1,
+      "keywords": [
+        "Parasite",
+        "Late"
+      ],
+      "text": "Parasite. Late. Place on the point leader; you control their next turn's single play.",
+      "immediateEffect": {
+        "type": "placeParasite",
+        "params": {
+          "value": -1,
+          "hijackTurn": true,
+          "target": "opponentHighestGenePoolPoints"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Splashy Late parasite; strong but one-shot and negative pts."
+    },
+    {
+      "id": "t111",
+      "name": "Emotional Support Slime",
+      "emoji": "🫧",
+      "color": "Social",
+      "points": 2,
+      "keywords": [
+        "Dominant"
+      ],
+      "text": "Dominant.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Filler Dominant to keep count; safe points."
+    },
+    {
+      "id": "t112",
+      "name": "Panic Spore",
+      "emoji": "💨",
+      "color": "Weird",
+      "points": 0,
+      "keywords": [
+        "Late"
+      ],
+      "text": "Late. Immediate: every opponent discards their highest-point card in hand.",
+      "immediateEffect": {
+        "type": "discardRandomOpponent",
+        "params": {
+          "pick": "highest",
+          "target": "allOpponents"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Late board-wide hand punish."
+    },
+    {
+      "id": "t113",
+      "name": "Detritivore",
+      "emoji": "🐌",
+      "color": "Body",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: play a Trait from your own discard pile.",
+      "immediateEffect": {
+        "type": "playFromDiscard",
+        "params": {
+          "owner": "self",
+          "fallback": "mostRecentDiscard"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Self-recursion; core discard-deck piece."
+    },
+    {
+      "id": "t114",
+      "name": "Necromancer Cell",
+      "emoji": "🧟",
+      "color": "Weird",
+      "points": 0,
+      "keywords": [],
+      "text": "Immediate: revive an opponent's discarded Trait into your Gene Pool.",
+      "immediateEffect": {
+        "type": "reviveFromDiscard",
+        "params": {
+          "owner": "opponent",
+          "fallback": "mostRecentDiscard",
+          "target": "opponentLargestDiscard"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Steal value from the graveyard."
+    },
+    {
+      "id": "t115",
+      "name": "Bone Orchard",
+      "emoji": "🌾",
+      "color": "Weird",
+      "points": 1,
+      "keywords": [],
+      "text": "End: +1 for each different card NAME in your discard pile, max 4.",
+      "immediateEffect": null,
+      "endEffect": {
+        "type": "scoreForDiscardPile",
+        "params": {
+          "mode": "uniqueNames",
+          "max": 4
+        }
+      },
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Rewards varied discards, not volume."
+    },
+    {
+      "id": "t116",
+      "name": "Regurgitation",
+      "emoji": "↖️",
+      "color": "Body",
+      "points": 0,
+      "keywords": [],
+      "text": "Immediate: return your most recent discard to hand, then draw 1.",
+      "immediateEffect": {
+        "type": "reviveFromDiscard",
+        "params": {
+          "owner": "self",
+          "toZone": "hand",
+          "fallback": "mostRecentDiscard",
+          "then": {
+            "type": "draw",
+            "params": {
+              "count": 1
+            }
+          }
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Recycles a key card."
+    },
+    {
+      "id": "t117",
+      "name": "Scab Harvest",
+      "emoji": "🩹",
+      "color": "Predatory",
+      "points": 1,
+      "keywords": [],
+      "text": "Immediate: play the top card of the largest discard pile as your own.",
+      "immediateEffect": {
+        "type": "playFromDiscard",
+        "params": {
+          "fromOwner": "opponent",
+          "fallback": "mostRecentDiscard",
+          "target": "opponentLargestDiscard"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Aggressive graveyard raid."
+    },
+    {
+      "id": "t118",
+      "name": "Carrion Beetle",
+      "emoji": "🪲",
+      "color": "Social",
+      "points": 1,
+      "keywords": [],
+      "text": "End: +1 for every 2 cards across ALL discard piles, max 5.",
+      "immediateEffect": null,
+      "endEffect": {
+        "type": "scoreForDiscardPile",
+        "params": {
+          "scope": "all",
+          "perCard": 1,
+          "div": 2,
+          "max": 5
+        }
+      },
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Global discard payoff; loves grindy games."
+    },
+    {
+      "id": "t119",
+      "name": "Deathbed Mutation",
+      "emoji": "💀",
+      "color": "Weird",
+      "points": 0,
+      "keywords": [
+        "Late"
+      ],
+      "text": "Late. Immediate: revive your most recently destroyed Trait.",
+      "immediateEffect": {
+        "type": "reviveFromDiscard",
+        "params": {
+          "owner": "self",
+          "fallback": "mostRecentDiscard"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Late clutch recursion."
+    },
+    {
+      "id": "t120",
+      "name": "Botfly Larva",
+      "emoji": "🪰",
+      "color": "Predatory",
+      "points": -1,
+      "keywords": [
+        "Parasite"
+      ],
+      "text": "Parasite. At each Stabilize, the host discards 1 random card.",
+      "immediateEffect": {
+        "type": "placeParasite",
+        "params": {
+          "value": -1,
+          "hostDiscardPerStabilize": 1,
+          "target": "opponentMostCardsInHand"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Slow hand bleed."
+    },
+    {
+      "id": "t121",
+      "name": "Bloodsucker",
+      "emoji": "🦟",
+      "color": "Predatory",
+      "points": -1,
+      "keywords": [
+        "Parasite"
+      ],
+      "text": "Parasite. Whenever the host draws a card, you draw 1.",
+      "immediateEffect": {
+        "type": "placeParasite",
+        "params": {
+          "value": -1,
+          "leechDraw": true,
+          "target": "opponentMostCardsInHand"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Turns their engine into yours."
+    },
+    {
+      "id": "t122",
+      "name": "Mind-Control Vine",
+      "emoji": "🌿",
+      "color": "Social",
+      "points": -1,
+      "keywords": [
+        "Parasite"
+      ],
+      "text": "Parasite. At each Stabilize, the host gives you their highest-point card in hand.",
+      "immediateEffect": {
+        "type": "placeParasite",
+        "params": {
+          "value": -1,
+          "siphonBest": true,
+          "target": "opponentHighestGenePoolPoints"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Recurring card theft; strong, negative pts."
+    },
+    {
+      "id": "t123",
+      "name": "Cursed Gene",
+      "emoji": "🧿",
+      "color": "Weird",
+      "points": -1,
+      "keywords": [
+        "Parasite"
+      ],
+      "text": "Parasite. The host's endgame scoring bonuses are halved.",
+      "immediateEffect": {
+        "type": "placeParasite",
+        "params": {
+          "value": -1,
+          "halveEndBonuses": true,
+          "target": "opponentHighestGenePoolPoints"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Anti-combo curse; hits scoring decks hardest."
+    },
+    {
+      "id": "t124",
+      "name": "Ichneumon Wasp",
+      "emoji": "🦂",
+      "color": "Predatory",
+      "points": -1,
+      "keywords": [
+        "Parasite",
+        "Late"
+      ],
+      "text": "Parasite. Late. While placed, the host cannot play Late cards.",
+      "immediateEffect": {
+        "type": "placeParasite",
+        "params": {
+          "value": -1,
+          "disable": "late",
+          "target": "opponentHighestGenePoolPoints"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Late-window lockout on the leader."
+    },
+    {
+      "id": "t125",
+      "name": "Last Word",
+      "emoji": "🎤",
+      "color": "Social",
+      "points": 1,
+      "keywords": [
+        "Late"
+      ],
+      "text": "Late. Immediate: copy the immediate effect of the last Trait played this Age.",
+      "immediateEffect": {
+        "type": "copyImmediate",
+        "params": {
+          "filter": "lastPlayedThisAge",
+          "fallback": "mostRecentTrait",
+          "target": "anyPlayer"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Reactive Late copy."
+    },
+    {
+      "id": "t126",
+      "name": "Nocturnal Strike",
+      "emoji": "🌙",
+      "color": "Predatory",
+      "points": 1,
+      "keywords": [
+        "Late"
+      ],
+      "text": "Late. Immediate: destroy a non-Dominant Trait played this Age.",
+      "immediateEffect": {
+        "type": "destroyOpponentTrait",
+        "params": {
+          "filter": "playedThisAge",
+          "fallback": "mostRecentTrait",
+          "target": "opponentHighestGenePoolPoints"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Answers combos assembled during the Age."
+    }
+  ],
+  "ages": [
+    {
+      "id": "a001",
+      "name": "The Warm Shallows",
+      "emoji": "🌊",
+      "text": "Everyone draws 2. A gentle beginning.",
+      "effect": {
+        "type": "draw",
+        "params": {
+          "count": 2,
+          "target": "allPlayers"
+        }
+      },
+      "isFinal": false,
+      "designNotes": "Soft opener; good early."
+    },
+    {
+      "id": "a002",
+      "name": "Great Oxygenation",
+      "emoji": "🫧",
+      "text": "Every player with 2+ Body Traits draws 1; others discard 1.",
+      "effect": {
+        "type": "draw",
+        "params": {
+          "count": 1,
+          "condition": "ownBody2",
+          "elseDiscard": 1,
+          "target": "allPlayers"
+        }
+      },
+      "isFinal": false,
+      "designNotes": "Rewards early Body."
+    },
+    {
+      "id": "a003",
+      "name": "Predator Boom",
+      "emoji": "🦖",
+      "text": "Each player may destroy one non-Dominant Trait of the point leader (auto: lowest).",
+      "effect": {
+        "type": "destroyOpponentTrait",
+        "params": {
+          "target": "opponentHighestGenePoolPoints",
+          "fallback": "lowestPointNonDominantTrait"
+        }
+      },
+      "isFinal": false,
+      "designNotes": "Anti-leader Age; aggressive."
+    },
+    {
+      "id": "a004",
+      "name": "Toxic Bloom",
+      "emoji": "☣️",
+      "text": "All non-Dominant Traits at the edges of each Gene Pool are poisoned.",
+      "effect": {
+        "type": "poison",
+        "params": {
+          "scope": "edgeTraits",
+          "target": "allPlayers",
+          "fallback": "randomNonDominantTrait"
+        }
+      },
+      "isFinal": false,
+      "designNotes": "Positional pressure; Dominant safe."
+    },
+    {
+      "id": "a005",
+      "name": "Ice Age",
+      "emoji": "🧊",
+      "text": "Every non-Dominant Trait worth 3+ points is destroyed unless its owner discards 2.",
+      "effect": {
+        "type": "destroyOpponentTrait",
+        "params": {
+          "scope": "highValue",
+          "target": "allPlayers",
+          "ransom": 2
+        }
+      },
+      "isFinal": false,
+      "designNotes": "Cold wipe; Blubber/Antifreeze survive."
+    },
+    {
+      "id": "a006",
+      "name": "Gene Rush",
+      "emoji": "🧬",
+      "text": "Everyone draws up to a full hand of 6.",
+      "effect": {
+        "type": "draw",
+        "params": {
+          "count": "toHand6",
+          "target": "allPlayers"
+        }
+      },
+      "isFinal": false,
+      "designNotes": "Refuel Age."
+    },
+    {
+      "id": "a007",
+      "name": "Migration",
+      "emoji": "🧭",
+      "text": "Reverse turn order for the rest of the game.",
+      "effect": {
+        "type": "reverseTurnOrder",
+        "params": {}
+      },
+      "isFinal": false,
+      "designNotes": "Permanent order flip."
+    },
+    {
+      "id": "a008",
+      "name": "Symbiosis Era",
+      "emoji": "🤝",
+      "text": "Each player passes their whole hand to the next player.",
+      "effect": {
+        "type": "swapHands",
+        "params": {
+          "mode": "rotate",
+          "target": "allPlayers"
+        }
+      },
+      "isFinal": false,
+      "designNotes": "Hand chaos; resets combos."
+    },
+    {
+      "id": "a009",
+      "name": "Plague Years",
+      "emoji": "🦠",
+      "text": "Every player poisons a random non-Dominant Trait of the player on their left.",
+      "effect": {
+        "type": "poison",
+        "params": {
+          "target": "leftNeighbor",
+          "fallback": "randomNonDominantTrait"
+        }
+      },
+      "isFinal": false,
+      "designNotes": "Table-wide venom."
+    },
+    {
+      "id": "a010",
+      "name": "Mutation Storm",
+      "emoji": "🌩️",
+      "text": "Every non-Dominant Trait's color is randomized.",
+      "effect": {
+        "type": "copyTrait",
+        "params": {
+          "aspect": "recolorRandomAll",
+          "target": "allPlayers"
+        }
+      },
+      "isFinal": false,
+      "designNotes": "Wrecks tribal/adjacency scoring."
+    },
+    {
+      "id": "a011",
+      "name": "Scavenger Feast",
+      "emoji": "🦴",
+      "text": "Each player may play 1 Trait from their own discard pile for free.",
+      "effect": {
+        "type": "playFromDiscard",
+        "params": {
+          "owner": "self",
+          "target": "allPlayers",
+          "fallback": "mostRecentDiscard"
+        }
+      },
+      "isFinal": false,
+      "designNotes": "Discard-deck payoff Age."
+    },
+    {
+      "id": "a012",
+      "name": "Territorial War",
+      "emoji": "⚔️",
+      "text": "Each player destroys the most recent Trait of the opponent to their right.",
+      "effect": {
+        "type": "destroyOpponentTrait",
+        "params": {
+          "target": "rightNeighbor",
+          "fallback": "mostRecentTrait"
+        }
+      },
+      "isFinal": false,
+      "designNotes": "Symmetric removal."
+    },
+    {
+      "id": "a013",
+      "name": "Population Bottleneck",
+      "emoji": "⏳",
+      "text": "Every player keeps only their 3 highest-point Traits; the rest are discarded.",
+      "effect": {
+        "type": "destroyOwnTrait",
+        "params": {
+          "scope": "keepTop3",
+          "target": "allPlayers"
+        }
+      },
+      "isFinal": false,
+      "designNotes": "Brutal midgame reset; Dominant still bound by 'highest' rule."
+    },
+    {
+      "id": "a014",
+      "name": "Open Ecosystem",
+      "emoji": "👁️",
+      "text": "Reveal every player's hand with full card text until the next Age.",
+      "effect": {
+        "type": "revealHandFullText",
+        "params": {
+          "target": "allPlayers"
+        }
+      },
+      "isFinal": false,
+      "designNotes": "Total information Age."
+    },
+    {
+      "id": "a015",
+      "name": "Cambrian Explosion",
+      "emoji": "💥",
+      "text": "Each player immediately plays one extra Trait.",
+      "effect": {
+        "type": "playExtra",
+        "params": {
+          "count": 1,
+          "target": "allPlayers",
+          "fallback": "self"
+        }
+      },
+      "isFinal": false,
+      "designNotes": "Tempo burst."
+    },
+    {
+      "id": "a016",
+      "name": "Parasite Wave",
+      "emoji": "🪱",
+      "text": "Each player places their cheapest Parasite (if any) on the point leader.",
+      "effect": {
+        "type": "placeParasite",
+        "params": {
+          "target": "opponentHighestGenePoolPoints",
+          "source": "cheapestParasite"
+        }
+      },
+      "isFinal": false,
+      "designNotes": "Curse-deck payoff Age."
+    },
+    {
+      "id": "a017",
+      "name": "The Long Drought",
+      "emoji": "🏜️",
+      "text": "No one may draw next turn.",
+      "effect": {
+        "type": "skipNextPlayer",
+        "params": {
+          "partial": "drawOnly",
+          "target": "allPlayers"
+        }
+      },
+      "isFinal": false,
+      "designNotes": "Resource squeeze."
+    },
+    {
+      "id": "a018",
+      "name": "Convergent Evolution",
+      "emoji": "🔗",
+      "text": "Each player scores +2 now-locked points if all their Traits share 2 or fewer colors.",
+      "effect": {
+        "type": "endgameBonus",
+        "params": {
+          "cond": "twoOrFewerColors",
+          "amount": 2,
+          "target": "allPlayers"
+        }
+      },
+      "isFinal": false,
+      "designNotes": "Rewards focused boards."
+    },
+    {
+      "id": "a019",
+      "name": "Radiation Belt",
+      "emoji": "☢️",
+      "text": "Each player discards 2, then draws 1; poison spreads to a random Trait each.",
+      "effect": {
+        "type": "discardRandomOpponent",
+        "params": {
+          "count": 2,
+          "then": {
+            "type": "poison",
+            "params": {
+              "fallback": "randomNonDominantTrait"
+            }
+          },
+          "target": "allPlayers"
+        }
+      },
+      "isFinal": false,
+      "designNotes": "Attrition Age."
+    },
+    {
+      "id": "a020",
+      "name": "The Great Dying",
+      "emoji": "☄️",
+      "text": "FINAL AGE. Every non-Dominant Trait worth 4+ points is destroyed. Then score.",
+      "effect": {
+        "type": "destroyOpponentTrait",
+        "params": {
+          "scope": "value4plus",
+          "target": "allPlayers"
+        }
+      },
+      "isFinal": true,
+      "designNotes": "Apocalypse finisher; makes Dominant and low-point payoffs shine."
+    },
+    {
+      "id": "a021",
+      "name": "Heat Death",
+      "emoji": "🌑",
+      "text": "FINAL AGE. All Parasites resolve, all poison resolves, then score.",
+      "effect": {
+        "type": "endgameBonus",
+        "params": {
+          "cond": "resolveAll",
+          "amount": 0,
+          "target": "allPlayers"
+        }
+      },
+      "isFinal": true,
+      "designNotes": "Alternate finisher favoring curse/poison decks."
+    }
+  ]
+}

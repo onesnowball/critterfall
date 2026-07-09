@@ -1,6 +1,6 @@
 # Critterfall
 
-Critterfall is an original browser-playable local multiplayer card game for 2 to 6 players. Each player evolves a strange species across a string of Ages, plays Traits with immediate and endgame effects, survives global events, and scores at the end of the final round.
+Critterfall is an original browser-playable multiplayer card game for 2 to 6 players. Each player evolves a strange species by building a public Gene Pool across randomized Ages, playing Traits with immediate, passive, parasite, poison, and endgame effects.
 
 ## Install
 
@@ -115,23 +115,28 @@ If another device on your network cannot connect:
 
 - 2 to 6 players join a room with a room code.
 - The host starts the game from the lobby.
-- Everyone begins with 5 Trait cards.
-- There are 8 normal Ages plus a Final Age.
+- Everyone begins with 5 Trait cards in hand.
+- Played Traits form a public Gene Pool visible to everyone.
+- Traits use 4 colors: Body, Predatory, Social, and Weird.
+- Each game uses a randomized Age sequence with one Final Age placed last.
 - At the start of each Age, a global Age card is revealed and resolved.
 - Each player gets one turn per Age.
-- At the start of your turn, you draw 1 card.
 - Then choose one action:
   - Play 1 Trait card.
   - Skip your play and draw 2 cards.
-- Some Traits resolve immediate effects right away.
-- Played Traits stay on your species board unless destroyed.
-- Shields automatically block destructive or discard effects when possible.
+- After playing, draw back toward 5 cards.
+- Dominant Traits resist normal stealing and destruction.
+- Parasites are placed into another player's Gene Pool and usually hurt their score.
+- Poisoned Traits are destroyed when the Age stabilizes.
+- Some reveal effects expose full card text from an opponent's hand.
+- The discard pile is public and some cards can revive or play from it.
 - After the Final Age round, final scoring is calculated and the highest total wins.
 
 ## Known MVP Limitations
 
 - Game state is stored in server memory only, so restarting the server clears rooms.
 - Targeted effects use automatic targeting rather than a manual target picker.
+- Late cards currently use normal-turn timing; a full out-of-turn Late window is a future UI/engine pass.
 - If a player disconnects mid-game, the room stays alive, but there is no reconnect flow.
 - Discard-to-hand-limit uses automatic random discards.
 - The UI focuses on clarity and playability over deep polish or animations.

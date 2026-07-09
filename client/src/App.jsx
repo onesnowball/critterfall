@@ -15,6 +15,10 @@ function getInviteLink(code) {
 }
 
 function TraitCard({ card, actionLabel, onAction, disabled, subtle = false }) {
+  const keywords = card.keywords || [];
+  const tags = card.tags || [card.color].filter(Boolean);
+  const colorClass = card.color ? ` color-pill--${card.color.toLowerCase()}` : "";
+
   return (
     <article className={`trait-card${subtle ? " trait-card--subtle" : ""}`}>
       <div className="trait-card__top">
@@ -23,11 +27,19 @@ function TraitCard({ card, actionLabel, onAction, disabled, subtle = false }) {
         </span>
         <div>
           <h4>{card.name}</h4>
-          <p className="trait-card__tags">{card.tags.join(" | ")}</p>
+          <p className="trait-card__tags">{tags.join(" | ")}</p>
         </div>
       </div>
       <p className="trait-card__text">{card.text}</p>
       <div className="trait-card__meta">
+        {card.color ? <span className={`color-pill${colorClass}`}>{card.color}</span> : null}
+        {keywords.map((keyword) => (
+          <span key={`${card.instanceId}-${keyword}`} className="keyword-pill">
+            {keyword}
+          </span>
+        ))}
+        {card.status?.poisoned ? <span className="status-pill">Poison {card.status.poisoned}</span> : null}
+        {card.parasiteOwnerName ? <span className="status-pill">Parasite by {card.parasiteOwnerName}</span> : null}
         <span className={`point-pill${card.effectivePoints < 0 ? " point-pill--negative" : ""}`}>
           {card.effectivePoints > 0 ? `+${card.effectivePoints}` : card.effectivePoints}
         </span>
@@ -58,10 +70,10 @@ function PlayerBoard({ player, isCurrent, isMe }) {
         <div className="board-panel__stats">
           {player.isHost ? <span className="meta-pill">Host</span> : null}
           {player.hasActedThisAge ? <span className="meta-pill">Acted</span> : null}
-          <span className="meta-pill">Shield {player.shield}</span>
-          <span className="meta-pill">Board {player.currentBoardPoints}</span>
+          <span className="meta-pill">Gene Pool {player.currentBoardPoints}</span>
         </div>
       </div>
+      <h4>Gene Pool</h4>
       <div className="board-traits">
         {player.board.length ? (
           player.board.map((card) => <TraitCard key={card.instanceId} card={card} subtle />)
@@ -69,6 +81,16 @@ function PlayerBoard({ player, isCurrent, isMe }) {
           <p className="empty-state">No Traits played yet.</p>
         )}
       </div>
+      {!isMe && player.hand.length ? (
+        <div className="revealed-hand">
+          <h4>Revealed Hand</h4>
+          <div className="board-traits">
+            {player.hand.map((card) => (
+              <TraitCard key={card.instanceId} card={card} subtle />
+            ))}
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -329,8 +351,8 @@ function App() {
             <p className="eyebrow">Local Multiplayer Evolution Game</p>
             <h1>Critterfall</h1>
             <p className="lede">
-              Build an absurd species, survive eight Ages, then see whose weird little creature scores
-              the most before the world goes quiet.
+              Build a public Gene Pool, steal questionable organs, poison rivals, survive randomized Ages,
+              then see whose weird little creature scores the most before the world goes quiet.
             </p>
           </div>
           <div className="hero-actions">
@@ -370,15 +392,15 @@ function App() {
         <section className="info-grid">
           <article className="panel">
             <h3>How It Works</h3>
-            <p>Create a room on one device, share the room code, then both players open this same page on the local network.</p>
+            <p>Create a room, share the room code or invite link, then build public Gene Pools across randomized Ages.</p>
+          </article>
+          <article className="panel">
+            <h3>Public Gene Pools</h3>
+            <p>Played Traits are public with full text, color, keywords, poison, Dominant, and Parasite status.</p>
           </article>
           <article className="panel">
             <h3>Private Hands</h3>
-            <p>Your hand only appears on your screen. Everyone else only sees how many cards you hold.</p>
-          </article>
-          <article className="panel">
-            <h3>Fastest Setup</h3>
-            <p>Run `npm install`, then `npm run dev`, then visit `http://localhost:5173`.</p>
+            <p>Hands stay private unless a reveal effect exposes every card with full text.</p>
           </article>
         </section>
       </main>
@@ -454,7 +476,9 @@ function App() {
         <section className="panel panel--hero">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Age {roomState.currentAge?.number} of 9</p>
+              <p className="eyebrow">
+                Age {roomState.currentAge?.number} of {roomState.ageDeckCount || roomState.currentAge?.total || 9}
+              </p>
               <h1>
                 {roomState.currentAge?.emoji} {roomState.currentAge?.name}
               </h1>
@@ -462,7 +486,7 @@ function App() {
             </div>
             <div className="status-strip">
               <span className="meta-pill">Room {roomState.code}</span>
-              <span className="meta-pill">Draw {roomState.drawPileCount}</span>
+              <span className="meta-pill">Deck {roomState.drawPileCount}</span>
               <span className="meta-pill">Discard {roomState.discardPileCount}</span>
             </div>
           </div>
@@ -478,7 +502,7 @@ function App() {
               Skip and Draw 2
             </button>
             <span className="muted-text">
-              Shields auto-block random discards and destruction when they can.
+              Dominant Traits resist stealing and destruction. Poison resolves when the Age stabilizes.
             </span>
           </div>
 
@@ -489,7 +513,7 @@ function App() {
           <div className="section-heading">
             <div>
               <h2>Your Hand</h2>
-              <p>Only you can see these cards.</p>
+              <p>Play one Trait, then draw back up toward 5 cards.</p>
             </div>
             <span className="meta-pill">
               {hand.length} card{hand.length === 1 ? "" : "s"}
@@ -514,6 +538,25 @@ function App() {
               ))
             ) : (
               <p className="empty-state">Your hand is empty.</p>
+            )}
+          </div>
+        </section>
+
+        <section className="panel">
+          <div className="section-heading">
+            <div>
+              <h2>Discard Pile</h2>
+              <p>Public zone. Some Traits can revive or play from here.</p>
+            </div>
+            <span className="meta-pill">
+              {roomState.discardPileCount} card{roomState.discardPileCount === 1 ? "" : "s"}
+            </span>
+          </div>
+          <div className="discard-grid">
+            {roomState.discardPile?.length ? (
+              roomState.discardPile.map((card) => <TraitCard key={card.instanceId} card={card} subtle />)
+            ) : (
+              <p className="empty-state">Nothing discarded yet.</p>
             )}
           </div>
         </section>
