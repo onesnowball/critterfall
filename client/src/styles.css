@@ -475,6 +475,62 @@ input {
   align-items: center;
 }
 
+.meta-pill--protected {
+  background: rgba(63, 120, 168, 0.16);
+  color: #2f5f86;
+  font-weight: 700;
+}
+
+.trait-card--attached {
+  box-shadow:
+    inset 0 0 0 2px rgba(63, 120, 168, 0.28),
+    0 10px 28px rgba(63, 120, 168, 0.14);
+}
+
+.trait-card__attachments {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: -2px;
+  padding-left: 10px;
+  border-left: 2px dashed var(--card-line, rgba(80, 94, 79, 0.3));
+}
+
+.attachment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #fffaf1;
+  background: var(--chip-accent, #7655a2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  animation: card-deal-in 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.attachment-chip strong {
+  font-weight: 800;
+}
+
+.attachment-chip--color-green {
+  --chip-accent: #4f8b45;
+}
+
+.attachment-chip--color-red {
+  --chip-accent: #b14b37;
+}
+
+.attachment-chip--color-blue {
+  --chip-accent: #3f78a8;
+}
+
+.attachment-chip--color-purple,
+.attachment-chip--color-colorless {
+  --chip-accent: #7655a2;
+}
+
 .board-panel {
   display: grid;
   gap: 16px;

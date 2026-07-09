@@ -3113,6 +3113,2189 @@
       "passiveEffect": null,
       "quantity": 2,
       "designNotes": "At world's end, squeeze in one more play."
+    },
+    {
+      "id": "t154",
+      "name": "Chitin Weld",
+      "emoji": "🦴",
+      "color": "Green",
+      "points": 0,
+      "keywords": [],
+      "text": "Attach to one of your Traits. That Trait cannot be discarded or destroyed.",
+      "immediateEffect": {
+        "type": "attach",
+        "params": {
+          "scope": "self",
+          "protect": [
+            "remove"
+          ]
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 2,
+      "designNotes": "Self-attach anti-removal shield."
+    },
+    {
+      "id": "t155",
+      "name": "Barbed Grip",
+      "emoji": "🪝",
+      "color": "Red",
+      "points": 1,
+      "keywords": [],
+      "text": "Attach to one of your Traits. That Trait cannot be stolen or swapped.",
+      "immediateEffect": {
+        "type": "attach",
+        "params": {
+          "scope": "self",
+          "protect": [
+            "steal"
+          ]
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 2,
+      "designNotes": "Self-attach anti-theft."
+    },
+    {
+      "id": "t156",
+      "name": "Lock Symbiote",
+      "emoji": "🔒",
+      "color": "Blue",
+      "points": 0,
+      "keywords": [
+        "Late"
+      ],
+      "text": "Play any time. Attach to one of your Traits so it can neither be removed nor stolen.",
+      "immediateEffect": {
+        "type": "attach",
+        "params": {
+          "scope": "self",
+          "protect": [
+            "remove",
+            "steal"
+          ]
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Flexible full-protect aura, playable Late."
+    },
+    {
+      "id": "t157",
+      "name": "Root Anchor",
+      "emoji": "🌱",
+      "color": "Green",
+      "points": -1,
+      "keywords": [
+        "Late"
+      ],
+      "text": "Play any time. Attach to a Trait in any Row; it can no longer be discarded.",
+      "immediateEffect": {
+        "type": "attach",
+        "params": {
+          "scope": "anyBoard",
+          "protect": [
+            "remove"
+          ]
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Any-board anti-removal, negative cost."
+    },
+    {
+      "id": "t158",
+      "name": "Warden Moss",
+      "emoji": "🛡️",
+      "color": "Green",
+      "points": 1,
+      "keywords": [],
+      "text": "Attach to your highest Trait. It cannot be destroyed and gains +1.",
+      "immediateEffect": {
+        "type": "attach",
+        "params": {
+          "scope": "self",
+          "protect": [
+            "remove"
+          ],
+          "valueBonus": 1
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Protect plus small buff."
+    },
+    {
+      "id": "t159",
+      "name": "Tally Spores",
+      "emoji": "➕",
+      "color": "Green",
+      "points": 0,
+      "keywords": [],
+      "text": "Attach to one of your Traits. Worth +1 for each effectless Trait in your Row.",
+      "immediateEffect": {
+        "type": "attach",
+        "params": {
+          "scope": "self"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "dynamicValue",
+        "params": {
+          "basis": "effectlessCount",
+          "per": 1
+        }
+      },
+      "quantity": 2,
+      "designNotes": "Attachment whose value scales with effectless traits."
+    },
+    {
+      "id": "t160",
+      "name": "Apex Mirror",
+      "emoji": "🪞",
+      "color": "Purple",
+      "points": 0,
+      "keywords": [],
+      "text": "Attach to any Trait. Worth the size of the largest Gene Pool in the lobby.",
+      "immediateEffect": {
+        "type": "attach",
+        "params": {
+          "scope": "self"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "dynamicValue",
+        "params": {
+          "basis": "highestGenePoolInLobby",
+          "per": 1
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Dynamic value = highest gene pool in lobby."
+    },
+    {
+      "id": "t161",
+      "name": "Hoard Node",
+      "emoji": "💠",
+      "color": "Blue",
+      "points": 0,
+      "keywords": [],
+      "text": "Attach to one of your Traits. Worth +1 for every card in your hand at scoring.",
+      "immediateEffect": {
+        "type": "attach",
+        "params": {
+          "scope": "self"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "dynamicValue",
+        "params": {
+          "basis": "handSize",
+          "per": 1
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Value scales with hand size."
+    },
+    {
+      "id": "t162",
+      "name": "Grave Ledger",
+      "emoji": "📜",
+      "color": "Purple",
+      "points": 0,
+      "keywords": [],
+      "text": "Attach to one of your Traits. Worth +1 for every 3 cards in the discard pile.",
+      "immediateEffect": {
+        "type": "attach",
+        "params": {
+          "scope": "self"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "dynamicValue",
+        "params": {
+          "basis": "discardPileSize",
+          "per": 0.34
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Value scales with discard pile."
+    },
+    {
+      "id": "t163",
+      "name": "Trigger Tick",
+      "emoji": "⏱️",
+      "color": "Red",
+      "points": 1,
+      "keywords": [],
+      "text": "Attach to any Trait; if that Trait has an action, resolve it now.",
+      "immediateEffect": {
+        "type": "attach",
+        "params": {
+          "scope": "self",
+          "playHostAction": true
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Re-fires a host trait's action on attach."
+    },
+    {
+      "id": "t164",
+      "name": "Green Tithe",
+      "emoji": "🌿",
+      "color": "Blue",
+      "points": 3,
+      "keywords": [],
+      "text": "To play, discard 1 Green Trait from your Row or hand.",
+      "playCondition": {
+        "discardCost": {
+          "color": "Green",
+          "count": 1
+        }
+      },
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 2,
+      "designNotes": "Blue value-3 with a green discard cost."
+    },
+    {
+      "id": "t165",
+      "name": "Blood Price",
+      "emoji": "🩸",
+      "color": "Red",
+      "points": 4,
+      "keywords": [],
+      "text": "To play, discard 1 Red Trait from your Row or hand.",
+      "playCondition": {
+        "discardCost": {
+          "color": "Red",
+          "count": 1
+        }
+      },
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "High value gated by red discard."
+    },
+    {
+      "id": "t166",
+      "name": "Cull Rite",
+      "emoji": "🔻",
+      "color": "Purple",
+      "points": 5,
+      "keywords": [],
+      "text": "To play, discard 2 Traits of any one color you already hold.",
+      "playCondition": {
+        "discardCost": {
+          "color": "Blue",
+          "count": 1
+        }
+      },
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Costly high-value payoff."
+    },
+    {
+      "id": "t167",
+      "name": "Sacrifice Bloom",
+      "emoji": "🥀",
+      "color": "Green",
+      "points": 3,
+      "keywords": [],
+      "text": "To play, discard 1 Blue Trait from your Row or hand, then draw 2.",
+      "playCondition": {
+        "discardCost": {
+          "color": "Blue",
+          "count": 1
+        }
+      },
+      "immediateEffect": {
+        "type": "draw",
+        "params": {
+          "count": 2
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Convert a blue into cards."
+    },
+    {
+      "id": "t168",
+      "name": "Blind Forage",
+      "emoji": "🎲",
+      "color": "Green",
+      "points": 1,
+      "keywords": [],
+      "text": "Draw the top card. If it is Dominant, discard it; otherwise play it at once, ignoring its action.",
+      "immediateEffect": {
+        "type": "drawInspectPlay",
+        "params": {}
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 2,
+      "designNotes": "Gamble-draw-and-play."
+    },
+    {
+      "id": "t169",
+      "name": "Purge Wave",
+      "emoji": "🌊",
+      "color": "Blue",
+      "points": 1,
+      "keywords": [],
+      "text": "Every player, including you, discards 2 cards at random, then you draw 1.",
+      "immediateEffect": {
+        "type": "massHandDiscard",
+        "params": {
+          "count": 2,
+          "target": "allOpponents",
+          "includeSelf": true,
+          "then": {
+            "type": "draw",
+            "params": {
+              "count": 1
+            }
+          }
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Symmetric hand purge with a self-draw."
+    },
+    {
+      "id": "t170",
+      "name": "Swarm Burst",
+      "emoji": "🐝",
+      "color": "Green",
+      "points": -2,
+      "keywords": [],
+      "text": "Play 2 additional Traits this turn, ignoring their actions.",
+      "immediateEffect": {
+        "type": "grantExtraPlays",
+        "params": {
+          "count": 2,
+          "ignoreActions": true
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Negative value, big tempo, actions ignored."
+    },
+    {
+      "id": "t171",
+      "name": "Frenzy Instinct",
+      "emoji": "⚡",
+      "color": "Red",
+      "points": -1,
+      "keywords": [],
+      "text": "Play 1 additional Trait this turn, then move this into an opponent's Row.",
+      "immediateEffect": {
+        "type": "grantExtraPlays",
+        "params": {
+          "count": 1,
+          "then": {
+            "type": "moveSelfToOpponent",
+            "params": {
+              "value": -2
+            }
+          }
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Extra play plus self-offload as a penalty on a rival."
+    },
+    {
+      "id": "t172",
+      "name": "Ration Cache",
+      "emoji": "🥫",
+      "color": "Blue",
+      "points": 2,
+      "keywords": [],
+      "text": "Draw 3, then discard 1.",
+      "immediateEffect": {
+        "type": "draw",
+        "params": {
+          "count": 3,
+          "then": {
+            "type": "discardSelf",
+            "params": {
+              "count": 1
+            }
+          }
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 2,
+      "designNotes": "Dig deep, trim one."
+    },
+    {
+      "id": "t173",
+      "name": "Panic Shed",
+      "emoji": "😰",
+      "color": "Purple",
+      "points": 8,
+      "keywords": [
+        "Dominant"
+      ],
+      "text": "Discard your whole hand and do not refill this Age.",
+      "immediateEffect": {
+        "type": "discardHandNoStabilize",
+        "params": {}
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Big Dominant that empties your hand."
+    },
+    {
+      "id": "t174",
+      "name": "Cutpurse Cilia",
+      "emoji": "✂️",
+      "color": "Purple",
+      "points": 2,
+      "keywords": [],
+      "text": "Steal 2 random cards from an opponent's hand.",
+      "immediateEffect": {
+        "type": "stealRandom",
+        "params": {
+          "count": 2,
+          "target": "opponentMostCardsInHand"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Two-card random hand steal."
+    },
+    {
+      "id": "t175",
+      "name": "Peek Predator",
+      "emoji": "👁️",
+      "color": "Purple",
+      "points": 3,
+      "keywords": [],
+      "text": "Look at 2 random cards in an opponent's hand, take the better one, and play it at once.",
+      "immediateEffect": {
+        "type": "stealPeekPlay",
+        "params": {
+          "peek": 2,
+          "playImmediately": true
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Peek-and-play theft."
+    },
+    {
+      "id": "t176",
+      "name": "Azure Poacher",
+      "emoji": "🎯",
+      "color": "Purple",
+      "points": 3,
+      "keywords": [],
+      "text": "Steal a Blue Trait from any opponent's Row.",
+      "immediateEffect": {
+        "type": "stealChosenPublicTrait",
+        "params": {
+          "target": "anyPlayer",
+          "color": "Blue"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Color-targeted board steal (Blue)."
+    },
+    {
+      "id": "t177",
+      "name": "Verdant Poacher",
+      "emoji": "🎯",
+      "color": "Purple",
+      "points": 3,
+      "keywords": [],
+      "text": "Steal a Green Trait from any opponent's Row.",
+      "immediateEffect": {
+        "type": "stealChosenPublicTrait",
+        "params": {
+          "target": "anyPlayer",
+          "color": "Green"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Color-targeted board steal (Green)."
+    },
+    {
+      "id": "t178",
+      "name": "Magpie Reflex",
+      "emoji": "🐦",
+      "color": "Blue",
+      "points": 2,
+      "keywords": [],
+      "text": "Steal 1 random card from the opponent holding the most cards.",
+      "immediateEffect": {
+        "type": "stealRandom",
+        "params": {
+          "count": 1,
+          "target": "opponentMostCardsInHand"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 2,
+      "designNotes": "Single steal from the hoarder."
+    },
+    {
+      "id": "t179",
+      "name": "Reckless Clash",
+      "emoji": "💥",
+      "color": "Red",
+      "points": 4,
+      "keywords": [],
+      "text": "Choose an opponent. Each of you discards 1 Trait from your Row.",
+      "immediateEffect": {
+        "type": "destroyMutual",
+        "params": {
+          "target": "nextOpponent"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 2,
+      "designNotes": "Mutual trade of a trait."
+    },
+    {
+      "id": "t180",
+      "name": "Creeping Rot",
+      "emoji": "🍄",
+      "color": "Purple",
+      "points": 2,
+      "keywords": [],
+      "text": "Poison an opponent's Trait for 2 Ages.",
+      "immediateEffect": {
+        "type": "delayedPoison",
+        "params": {
+          "turns": 2,
+          "target": "opponentHighestGenePoolPoints"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 2,
+      "designNotes": "Timed poison."
+    },
+    {
+      "id": "t181",
+      "name": "Toxic Kiss",
+      "emoji": "💋",
+      "color": "Red",
+      "points": 3,
+      "keywords": [],
+      "text": "Poison a random Trait in the next opponent's Row.",
+      "immediateEffect": {
+        "type": "poison",
+        "params": {
+          "target": "nextOpponent"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Immediate single-turn poison."
+    },
+    {
+      "id": "t182",
+      "name": "Wrecking Tail",
+      "emoji": "🦎",
+      "color": "Red",
+      "points": 3,
+      "keywords": [],
+      "text": "Destroy the lowest Trait in an opponent's Row.",
+      "immediateEffect": {
+        "type": "destroyOpponentTrait",
+        "params": {
+          "target": "opponentHighestGenePoolPoints",
+          "fallback": "lowestPointNonDominantTrait"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Targeted destroy."
+    },
+    {
+      "id": "t183",
+      "name": "Molt Purge",
+      "emoji": "🐍",
+      "color": "Green",
+      "points": 2,
+      "keywords": [],
+      "text": "Discard your lowest Trait, then draw 2.",
+      "immediateEffect": {
+        "type": "destroyOwnTrait",
+        "params": {
+          "fallback": "lowestPointNonDominantTrait",
+          "then": {
+            "type": "draw",
+            "params": {
+              "count": 2
+            }
+          }
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Self-trim into refill."
+    },
+    {
+      "id": "t184",
+      "name": "Clingfast Larva",
+      "emoji": "🐛",
+      "color": "Purple",
+      "points": -1,
+      "keywords": [
+        "Parasite"
+      ],
+      "text": "Place into an opponent's Row as a Parasite worth -1 to them.",
+      "immediateEffect": {
+        "type": "placeParasite",
+        "params": {
+          "value": -1,
+          "target": "opponentHighestGenePoolPoints"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 2,
+      "designNotes": "Standard parasite."
+    },
+    {
+      "id": "t185",
+      "name": "Burden Bloom",
+      "emoji": "🌵",
+      "color": "Green",
+      "points": -2,
+      "keywords": [],
+      "text": "Reduce your value by playing another Trait, then shove this into an opponent's Row.",
+      "immediateEffect": {
+        "type": "grantExtraPlays",
+        "params": {
+          "count": 1,
+          "then": {
+            "type": "moveSelfToOpponent",
+            "params": {
+              "value": -2
+            }
+          }
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Tempo plus a rival penalty."
+    },
+    {
+      "id": "t186",
+      "name": "Freeloader Gene",
+      "emoji": "🪳",
+      "color": "Purple",
+      "points": -2,
+      "keywords": [
+        "Parasite"
+      ],
+      "text": "Place into an opponent's Row as a Parasite worth -2 to them.",
+      "immediateEffect": {
+        "type": "placeParasite",
+        "params": {
+          "value": -2,
+          "target": "opponentHighestGenePoolPoints"
+        }
+      },
+      "endEffect": {
+        "type": "scoreForOpponentParasites",
+        "params": {
+          "perParasite": 1
+        }
+      },
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Parasite that also rewards you at scoring."
+    },
+    {
+      "id": "t187",
+      "name": "Lean Season",
+      "emoji": "🍂",
+      "color": "Blue",
+      "points": 2,
+      "keywords": [],
+      "text": "Every player, including you, loses 1 Gene Pool.",
+      "immediateEffect": {
+        "type": "modifyGenePool",
+        "params": {
+          "target": "allPlayers",
+          "amount": 1,
+          "direction": "decrease"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Symmetric gene pool shrink."
+    },
+    {
+      "id": "t188",
+      "name": "Fertile Bloom",
+      "emoji": "🌸",
+      "color": "Green",
+      "points": 2,
+      "keywords": [],
+      "text": "Increase your Gene Pool by 2.",
+      "immediateEffect": {
+        "type": "modifyGenePool",
+        "params": {
+          "target": "self",
+          "amount": 2
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 2,
+      "designNotes": "Grow your own capacity."
+    },
+    {
+      "id": "t189",
+      "name": "Drought Curse",
+      "emoji": "🏜️",
+      "color": "Red",
+      "points": 3,
+      "keywords": [],
+      "text": "The opponent with the largest Gene Pool loses 2.",
+      "immediateEffect": {
+        "type": "modifyGenePool",
+        "params": {
+          "target": "opponentHighestGenePoolPoints",
+          "amount": 2,
+          "direction": "decrease"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Targeted gene pool attack."
+    },
+    {
+      "id": "t190",
+      "name": "Resilient Marrow",
+      "emoji": "🦿",
+      "color": "Green",
+      "points": 3,
+      "keywords": [],
+      "text": "Your Gene Pool cannot be reduced by opponents.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "genePoolProtection",
+        "params": {}
+      },
+      "quantity": 1,
+      "designNotes": "Passive gene pool guard."
+    },
+    {
+      "id": "t191",
+      "name": "Mimic Bud",
+      "emoji": "🧬",
+      "color": "Blue",
+      "points": 2,
+      "keywords": [],
+      "text": "Copy the last Trait played into your Row as a 0-value token.",
+      "immediateEffect": {
+        "type": "copyTrait",
+        "params": {
+          "asToken": true,
+          "fallback": "highestPointNonDominantTrait"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Token copy of a strong trait."
+    },
+    {
+      "id": "t192",
+      "name": "Echo Reflex",
+      "emoji": "🔁",
+      "color": "Blue",
+      "points": 1,
+      "keywords": [],
+      "text": "Copy the action of the Trait played just before this.",
+      "immediateEffect": {
+        "type": "copyImmediate",
+        "params": {}
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 2,
+      "designNotes": "Repeat the previous action."
+    },
+    {
+      "id": "t193",
+      "name": "Grave Salvage",
+      "emoji": "⚰️",
+      "color": "Purple",
+      "points": 2,
+      "keywords": [],
+      "text": "Choose a card from the discard pile and play it, ignoring its action.",
+      "immediateEffect": {
+        "type": "playTopDiscard",
+        "params": {
+          "choose": true
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Recur from discard."
+    },
+    {
+      "id": "t194",
+      "name": "Fossil Revival",
+      "emoji": "🦕",
+      "color": "Green",
+      "points": 2,
+      "keywords": [],
+      "text": "Return a card from the discard pile to your hand.",
+      "immediateEffect": {
+        "type": "reviveFromDiscard",
+        "params": {
+          "choose": true
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Discard recursion to hand."
+    },
+    {
+      "id": "t195",
+      "name": "Extra Chromosome",
+      "emoji": "➰",
+      "color": "Green",
+      "points": 1,
+      "keywords": [],
+      "text": "Your hand limit is increased by 1.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "handLimitMod",
+        "params": {
+          "amount": 1
+        }
+      },
+      "quantity": 2,
+      "designNotes": "Hand-limit boost."
+    },
+    {
+      "id": "t196",
+      "name": "Frugal Coil",
+      "emoji": "🧵",
+      "color": "Blue",
+      "points": 1,
+      "keywords": [],
+      "text": "When the Age stabilizes, if your hand is empty, draw 1.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "draw",
+        "params": {
+          "trigger": "onStabilize",
+          "condition": "emptyHand",
+          "count": 1
+        }
+      },
+      "quantity": 2,
+      "designNotes": "Refill engine on empty hand."
+    },
+    {
+      "id": "t197",
+      "name": "Bounce Membrane",
+      "emoji": "🔄",
+      "color": "Blue",
+      "points": 1,
+      "keywords": [],
+      "text": "Returns to your hand whenever you play a Blue Trait.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "returnOnColorPlay",
+        "params": {
+          "color": "Blue"
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Reusable on blue plays."
+    },
+    {
+      "id": "t198",
+      "name": "Last Stand Hide",
+      "emoji": "🐢",
+      "color": "Green",
+      "points": 2,
+      "keywords": [],
+      "text": "The first time one of your Traits would be destroyed, this is discarded instead.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "shieldLikeBlock",
+        "params": {
+          "scope": "firstDestroy"
+        }
+      },
+      "quantity": 2,
+      "designNotes": "Sacrificial destroy shield."
+    },
+    {
+      "id": "t199",
+      "name": "Second Wind",
+      "emoji": "🍃",
+      "color": "Green",
+      "points": 1,
+      "keywords": [],
+      "text": "When the Age stabilizes, if you hold fewer than 2 cards, draw 1.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "draw",
+        "params": {
+          "trigger": "onStabilize",
+          "condition": "lowHand2",
+          "count": 1
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Low-hand refill."
+    },
+    {
+      "id": "t200",
+      "name": "Clone Colony",
+      "emoji": "🧫",
+      "color": "Green",
+      "points": 0,
+      "keywords": [],
+      "text": "Worth +2 for each other copy of this Trait in your Row.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "dynamicValue",
+        "params": {
+          "basis": "sameNameCount",
+          "per": 2
+        }
+      },
+      "quantity": 3,
+      "designNotes": "Set collector."
+    },
+    {
+      "id": "t201",
+      "name": "Sprawl Mass",
+      "emoji": "🕸️",
+      "color": "Purple",
+      "points": 0,
+      "keywords": [],
+      "text": "Worth +1 for every Trait in your Row.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "dynamicValue",
+        "params": {
+          "basis": "boardCount",
+          "per": 1
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Scales with board size."
+    },
+    {
+      "id": "t202",
+      "name": "Gene Reservoir",
+      "emoji": "🫙",
+      "color": "Blue",
+      "points": 0,
+      "keywords": [],
+      "text": "Worth a point for each point of your Gene Pool.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "dynamicValue",
+        "params": {
+          "basis": "genePoolSize",
+          "per": 1
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Value = gene pool size."
+    },
+    {
+      "id": "t203",
+      "name": "Verdant Chorus",
+      "emoji": "🎶",
+      "color": "Green",
+      "points": 0,
+      "keywords": [],
+      "text": "Worth +1 for each Green Trait in your Row.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "dynamicValue",
+        "params": {
+          "basis": "colorCount",
+          "color": "Green",
+          "per": 1
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Green synergy payoff."
+    },
+    {
+      "id": "t204",
+      "name": "Crimson Chorus",
+      "emoji": "🎵",
+      "color": "Red",
+      "points": 0,
+      "keywords": [],
+      "text": "Worth +1 for each Red Trait in your Row.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "dynamicValue",
+        "params": {
+          "basis": "colorCount",
+          "color": "Red",
+          "per": 1
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Red synergy payoff."
+    },
+    {
+      "id": "t205",
+      "name": "Alpha Roar",
+      "emoji": "🦁",
+      "color": "Green",
+      "points": 7,
+      "keywords": [],
+      "text": "Can only be played while you hold 3 or more Green Traits.",
+      "playCondition": {
+        "minColorCount": {
+          "color": "Green",
+          "count": 3
+        }
+      },
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Heroic-style green payoff."
+    },
+    {
+      "id": "t206",
+      "name": "Counter Charge",
+      "emoji": "🐗",
+      "color": "Red",
+      "points": 2,
+      "keywords": [],
+      "text": "Can only be played while an opponent has a Dominant Trait in play.",
+      "playCondition": {
+        "requiresOpponentKeyword": "Dominant"
+      },
+      "immediateEffect": {
+        "type": "destroyMutual",
+        "params": {
+          "target": "nextOpponent"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Reaction-flavored anti-Dominant."
+    },
+    {
+      "id": "t207",
+      "name": "Vault Sentinel",
+      "emoji": "🗝️",
+      "color": "Purple",
+      "points": 6,
+      "keywords": [],
+      "text": "Can only be played while you hold 3 or more Purple Traits.",
+      "playCondition": {
+        "minColorCount": {
+          "color": "Purple",
+          "count": 3
+        }
+      },
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Heroic-style purple payoff."
+    },
+    {
+      "id": "t208",
+      "name": "Tidal Bulwark",
+      "emoji": "🌀",
+      "color": "Blue",
+      "points": 6,
+      "keywords": [],
+      "text": "Can only be played while you hold 3 or more Blue Traits.",
+      "playCondition": {
+        "minColorCount": {
+          "color": "Blue",
+          "count": 3
+        }
+      },
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Heroic-style blue payoff."
+    },
+    {
+      "id": "t209",
+      "name": "Pocket Tyrant",
+      "emoji": "👑",
+      "color": "Purple",
+      "points": 1,
+      "keywords": [
+        "Dominant"
+      ],
+      "text": "A Dominant Trait worth only 1.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "A tiny Dominant."
+    },
+    {
+      "id": "t210",
+      "name": "Muddle Fog",
+      "emoji": "🌫️",
+      "color": "Blue",
+      "points": -2,
+      "keywords": [],
+      "text": "A low, confusing Trait worth -2.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 2,
+      "designNotes": "Simple negative filler with flavor."
+    },
+    {
+      "id": "t211",
+      "name": "Static Screech",
+      "emoji": "📢",
+      "color": "Red",
+      "points": 1,
+      "keywords": [],
+      "text": "Skip the next opponent's action this Age.",
+      "immediateEffect": {
+        "type": "skipNextPlayer",
+        "params": {
+          "target": "nextOpponent"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Tempo denial."
+    },
+    {
+      "id": "t212",
+      "name": "Turn Twister",
+      "emoji": "🔃",
+      "color": "Blue",
+      "points": 1,
+      "keywords": [],
+      "text": "Reverse the turn order.",
+      "immediateEffect": {
+        "type": "reverseTurnOrder",
+        "params": {}
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Order flip."
+    },
+    {
+      "id": "t213",
+      "name": "Hand Shuffle",
+      "emoji": "🤝",
+      "color": "Blue",
+      "points": 2,
+      "keywords": [],
+      "text": "Swap hands with the next opponent.",
+      "immediateEffect": {
+        "type": "swapHands",
+        "params": {
+          "target": "nextOpponent"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Two-player hand swap."
+    },
+    {
+      "id": "t214",
+      "name": "Great Rotation",
+      "emoji": "♻️",
+      "color": "Purple",
+      "points": 2,
+      "keywords": [],
+      "text": "Everyone passes their hand to the next player.",
+      "immediateEffect": {
+        "type": "swapHands",
+        "params": {
+          "mode": "rotate",
+          "target": "allPlayers"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Table-wide hand rotation."
+    },
+    {
+      "id": "t215",
+      "name": "Rainbow Weave",
+      "emoji": "🌈",
+      "color": "Blue",
+      "points": 1,
+      "keywords": [],
+      "text": "At the world's end, +1 for each different color in your Row.",
+      "immediateEffect": null,
+      "endEffect": {
+        "type": "scoreForUniqueColors",
+        "params": {
+          "perColor": 1
+        }
+      },
+      "passiveEffect": null,
+      "quantity": 2,
+      "designNotes": "Color diversity payoff."
+    },
+    {
+      "id": "t216",
+      "name": "Underdog Spirit",
+      "emoji": "🐜",
+      "color": "Green",
+      "points": 1,
+      "keywords": [],
+      "text": "At the world's end, +4 if you have the fewest Trait points.",
+      "immediateEffect": null,
+      "endEffect": {
+        "type": "scoreForLowPoints",
+        "params": {
+          "amount": 4
+        }
+      },
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Comeback bonus."
+    },
+    {
+      "id": "t217",
+      "name": "Scavenger Pride",
+      "emoji": "🦴",
+      "color": "Purple",
+      "points": 1,
+      "keywords": [],
+      "text": "At the world's end, +1 for every 2 of your cards in the discard pile.",
+      "immediateEffect": null,
+      "endEffect": {
+        "type": "scoreForDiscardPile",
+        "params": {
+          "div": 2,
+          "perCard": 1,
+          "max": 6
+        }
+      },
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Discard-pile payoff."
+    },
+    {
+      "id": "t218",
+      "name": "Runt Collective",
+      "emoji": "🐭",
+      "color": "Green",
+      "points": 1,
+      "keywords": [],
+      "text": "At the world's end, +2 for each of your face-value 1 Traits.",
+      "immediateEffect": null,
+      "endEffect": {
+        "type": "scoreForFaceValue",
+        "params": {
+          "value": 1,
+          "amount": 2
+        }
+      },
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Rewards cheap traits."
+    },
+    {
+      "id": "t219",
+      "name": "Spite Engine",
+      "emoji": "😤",
+      "color": "Red",
+      "points": 1,
+      "keywords": [],
+      "text": "At the world's end, +2 for each opponent ahead of you in Trait points.",
+      "immediateEffect": null,
+      "endEffect": {
+        "type": "scoreForBehindOpponents",
+        "params": {
+          "amount": 2
+        }
+      },
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Catch-up scaling."
+    },
+    {
+      "id": "t220",
+      "name": "Loyal Streak",
+      "emoji": "🎗️",
+      "color": "Blue",
+      "points": 1,
+      "keywords": [],
+      "text": "At the world's end, +1 for each Blue Trait anywhere on the table.",
+      "immediateEffect": null,
+      "endEffect": {
+        "type": "scoreForUniqueColors",
+        "params": {
+          "countColor": "Blue",
+          "max": 8
+        }
+      },
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Table-wide blue counter."
+    },
+    {
+      "id": "t221",
+      "name": "Overclock Nerve",
+      "emoji": "🧠",
+      "color": "Red",
+      "points": 0,
+      "keywords": [],
+      "text": "Play 1 additional Blue or Red Trait this turn.",
+      "immediateEffect": {
+        "type": "grantExtraPlays",
+        "params": {
+          "count": 1,
+          "colors": [
+            "Blue",
+            "Red"
+          ]
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Color-restricted extra play."
+    },
+    {
+      "id": "t222",
+      "name": "Deep Larder",
+      "emoji": "🧺",
+      "color": "Green",
+      "points": 2,
+      "keywords": [],
+      "text": "Draw 2 cards.",
+      "immediateEffect": {
+        "type": "draw",
+        "params": {
+          "count": 2
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 2,
+      "designNotes": "Simple card advantage."
+    },
+    {
+      "id": "t223",
+      "name": "Spy Membrane",
+      "emoji": "🔬",
+      "color": "Blue",
+      "points": 1,
+      "keywords": [],
+      "text": "Reveal the next opponent's hand until the next Age.",
+      "immediateEffect": {
+        "type": "revealHandFullText",
+        "params": {
+          "target": "nextOpponent"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Information effect."
+    },
+    {
+      "id": "t224",
+      "name": "Recycle Vat",
+      "emoji": "🗑️",
+      "color": "Blue",
+      "points": 2,
+      "keywords": [],
+      "text": "Play the top card of the discard pile, ignoring its action.",
+      "immediateEffect": {
+        "type": "playTopDiscard",
+        "params": {}
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Top-of-discard recursion."
+    },
+    {
+      "id": "t225",
+      "name": "Twin Sprout",
+      "emoji": "🌿",
+      "color": "Green",
+      "points": 0,
+      "keywords": [],
+      "text": "Worth +2 for each other copy of this Trait in your Row.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "dynamicValue",
+        "params": {
+          "basis": "sameNameCount",
+          "per": 2
+        }
+      },
+      "quantity": 2,
+      "designNotes": "Another set collector."
+    },
+    {
+      "id": "t226",
+      "name": "Hoarder Sac",
+      "emoji": "🎒",
+      "color": "Purple",
+      "points": 0,
+      "keywords": [],
+      "text": "Worth +1 for each card in your hand at the world's end.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "dynamicValue",
+        "params": {
+          "basis": "handSize",
+          "per": 1
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Rewards a full hand."
+    },
+    {
+      "id": "t227",
+      "name": "Bulwark Ridge",
+      "emoji": "⛰️",
+      "color": "Green",
+      "points": 4,
+      "keywords": [
+        "Dominant"
+      ],
+      "text": "A sturdy Trait.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Mid Dominant body."
+    },
+    {
+      "id": "t228",
+      "name": "Late Bloomer",
+      "emoji": "🌷",
+      "color": "Green",
+      "points": 5,
+      "keywords": [
+        "Late"
+      ],
+      "text": "May be played during the Late window.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 2,
+      "designNotes": "Strong Late play."
+    },
+    {
+      "id": "t229",
+      "name": "Doom Herald",
+      "emoji": "☄️",
+      "color": "Red",
+      "points": 6,
+      "keywords": [
+        "Late",
+        "Dominant"
+      ],
+      "text": "A powerful late arrival.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Late Dominant."
+    },
+    {
+      "id": "t230",
+      "name": "Parasol Fungus",
+      "emoji": "🌂",
+      "color": "Purple",
+      "points": 3,
+      "keywords": [],
+      "text": "A steady Trait.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 2,
+      "designNotes": "Neutral purple body."
+    },
+    {
+      "id": "t231",
+      "name": "Ember Scale",
+      "emoji": "🔥",
+      "color": "Red",
+      "points": 3,
+      "keywords": [],
+      "text": "A steady Trait.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 2,
+      "designNotes": "Neutral red body."
+    },
+    {
+      "id": "t232",
+      "name": "Frost Plate",
+      "emoji": "❄️",
+      "color": "Blue",
+      "points": 3,
+      "keywords": [],
+      "text": "A steady Trait.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 2,
+      "designNotes": "Neutral blue body."
+    },
+    {
+      "id": "t233",
+      "name": "Canopy Vein",
+      "emoji": "🌳",
+      "color": "Green",
+      "points": 3,
+      "keywords": [],
+      "text": "A steady Trait.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 2,
+      "designNotes": "Neutral green body."
+    },
+    {
+      "id": "t234",
+      "name": "Tremor Sense",
+      "emoji": "📳",
+      "color": "Red",
+      "points": 2,
+      "keywords": [],
+      "text": "Discard 1 random card from every opponent's hand.",
+      "immediateEffect": {
+        "type": "massHandDiscard",
+        "params": {
+          "count": 1,
+          "target": "allOpponents",
+          "includeSelf": false
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Table-wide single discard."
+    },
+    {
+      "id": "t235",
+      "name": "Locust Tide",
+      "emoji": "🦗",
+      "color": "Red",
+      "points": 2,
+      "keywords": [],
+      "text": "Every opponent discards 2 cards at random.",
+      "immediateEffect": {
+        "type": "massHandDiscard",
+        "params": {
+          "count": 2,
+          "target": "allOpponents"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Heavier hand attack."
+    },
+    {
+      "id": "t236",
+      "name": "Gene Splice",
+      "emoji": "🧪",
+      "color": "Blue",
+      "points": 2,
+      "keywords": [],
+      "text": "Draw 3, keep the best, discard 1.",
+      "immediateEffect": {
+        "type": "draw",
+        "params": {
+          "count": 3,
+          "then": {
+            "type": "discardSelf",
+            "params": {
+              "count": 1
+            }
+          }
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Selection dig."
+    },
+    {
+      "id": "t237",
+      "name": "Kin Shield",
+      "emoji": "👥",
+      "color": "Green",
+      "points": 0,
+      "keywords": [],
+      "text": "Attach to one of your effectless Traits and protect it from removal.",
+      "immediateEffect": {
+        "type": "attach",
+        "params": {
+          "scope": "self",
+          "effectlessOnly": true,
+          "protect": [
+            "remove"
+          ]
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Effectless-only protective attach."
+    },
+    {
+      "id": "t238",
+      "name": "Value Leech",
+      "emoji": "🧛",
+      "color": "Purple",
+      "points": -1,
+      "keywords": [
+        "Late"
+      ],
+      "text": "Play any time. Attach to a Trait in any Row; that Trait cannot be stolen.",
+      "immediateEffect": {
+        "type": "attach",
+        "params": {
+          "scope": "anyBoard",
+          "protect": [
+            "steal"
+          ]
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Any-board anti-steal aura."
+    },
+    {
+      "id": "t239",
+      "name": "Prime Directive",
+      "emoji": "🧭",
+      "color": "Purple",
+      "points": 0,
+      "keywords": [],
+      "text": "Attach to any Trait; if it has an action, resolve it now, then it cannot be removed.",
+      "immediateEffect": {
+        "type": "attach",
+        "params": {
+          "scope": "self",
+          "playHostAction": true,
+          "protect": [
+            "remove"
+          ]
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Re-trigger plus protect."
+    },
+    {
+      "id": "t240",
+      "name": "Coin Flip Gene",
+      "emoji": "🪙",
+      "color": "Blue",
+      "points": 2,
+      "keywords": [],
+      "text": "At the world's end, gain +4 or +0 at random.",
+      "immediateEffect": null,
+      "endEffect": {
+        "type": "scoreIfCondition",
+        "params": {
+          "cond": "coinFlip",
+          "ifTrue": 4,
+          "ifFalse": 0
+        }
+      },
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Gambler scoring."
+    },
+    {
+      "id": "t241",
+      "name": "Edge Dweller",
+      "emoji": "📏",
+      "color": "Green",
+      "points": 2,
+      "keywords": [],
+      "text": "At the world's end, +3 if this sits at either end of your Row.",
+      "immediateEffect": null,
+      "endEffect": {
+        "type": "scoreIfCondition",
+        "params": {
+          "cond": "edgeOfPool",
+          "amount": 3
+        }
+      },
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Positional bonus."
+    },
+    {
+      "id": "t242",
+      "name": "Survivor Bark",
+      "emoji": "🪵",
+      "color": "Green",
+      "points": 2,
+      "keywords": [],
+      "text": "At the world's end, +3 if it survived an Age wipe.",
+      "immediateEffect": null,
+      "endEffect": {
+        "type": "scoreIfCondition",
+        "params": {
+          "cond": "survivedWipe",
+          "amount": 3
+        }
+      },
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Rewards surviving a catastrophe."
+    },
+    {
+      "id": "t243",
+      "name": "Underhand Toxin",
+      "emoji": "🧫",
+      "color": "Red",
+      "points": 3,
+      "keywords": [],
+      "text": "Poison a random Trait in every opponent's Row for 2 Ages.",
+      "immediateEffect": {
+        "type": "delayedPoison",
+        "params": {
+          "turns": 2,
+          "target": "allOpponents"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Multi-target timed poison."
+    },
+    {
+      "id": "t244",
+      "name": "Graft Thief",
+      "emoji": "🩹",
+      "color": "Purple",
+      "points": 3,
+      "keywords": [],
+      "text": "Steal a Purple Trait from any opponent's Row.",
+      "immediateEffect": {
+        "type": "stealChosenPublicTrait",
+        "params": {
+          "target": "anyPlayer",
+          "color": "Purple"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Color-targeted board steal (Purple)."
+    },
+    {
+      "id": "t245",
+      "name": "Mirror Molt",
+      "emoji": "🪩",
+      "color": "Blue",
+      "points": 2,
+      "keywords": [],
+      "text": "Copy an opponent's strongest Trait into your Row as a token.",
+      "immediateEffect": {
+        "type": "copyTrait",
+        "params": {
+          "asToken": true,
+          "target": "opponentHighestGenePoolPoints",
+          "fallback": "highestPointNonDominantTrait"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Token copy from an opponent."
+    },
+    {
+      "id": "t246",
+      "name": "Feast Reflex",
+      "emoji": "🍖",
+      "color": "Green",
+      "points": 1,
+      "keywords": [],
+      "text": "When the Age stabilizes, if your hand is empty, draw 1.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "draw",
+        "params": {
+          "trigger": "onStabilize",
+          "condition": "emptyHand",
+          "count": 1
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Another empty-hand engine."
+    },
+    {
+      "id": "t247",
+      "name": "Bottleneck Gene",
+      "emoji": "⏳",
+      "color": "Purple",
+      "points": 0,
+      "keywords": [],
+      "text": "Worth +1 for each Trait in your Row at the world's end.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "dynamicValue",
+        "params": {
+          "basis": "boardCount",
+          "per": 1
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Board-size scaler."
+    },
+    {
+      "id": "t248",
+      "name": "Legacy Vault",
+      "emoji": "🏛️",
+      "color": "Purple",
+      "points": 0,
+      "keywords": [],
+      "text": "Worth the size of the largest Gene Pool in the lobby.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "dynamicValue",
+        "params": {
+          "basis": "highestGenePoolInLobby",
+          "per": 1
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Lobby-max scaler (non-attach)."
+    },
+    {
+      "id": "t249",
+      "name": "Nomad Cache",
+      "emoji": "🐪",
+      "color": "Blue",
+      "points": 3,
+      "keywords": [],
+      "text": "Draw 1, then skip the next opponent's action.",
+      "immediateEffect": {
+        "type": "draw",
+        "params": {
+          "count": 1,
+          "then": {
+            "type": "skipNextPlayer",
+            "params": {
+              "target": "nextOpponent"
+            }
+          }
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Card plus tempo denial."
+    },
+    {
+      "id": "t250",
+      "name": "Blessing Spore",
+      "emoji": "✨",
+      "color": "Green",
+      "points": 2,
+      "keywords": [],
+      "text": "Increase every player's Gene Pool by 1.",
+      "immediateEffect": {
+        "type": "modifyGenePool",
+        "params": {
+          "target": "allPlayers",
+          "amount": 1
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Group gene pool growth."
+    },
+    {
+      "id": "t251",
+      "name": "Famine Mark",
+      "emoji": "💀",
+      "color": "Red",
+      "points": 4,
+      "keywords": [],
+      "text": "The opponent holding the most cards discards 2 at random.",
+      "immediateEffect": {
+        "type": "massHandDiscard",
+        "params": {
+          "count": 2,
+          "target": "opponentMostCardsInHand"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Punish the hoarder."
+    },
+    {
+      "id": "t252",
+      "name": "Symbiont Crown",
+      "emoji": "🤴",
+      "color": "Purple",
+      "points": 5,
+      "keywords": [
+        "Dominant"
+      ],
+      "text": "A commanding Trait.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Strong Dominant."
+    },
+    {
+      "id": "t253",
+      "name": "Hive Memory",
+      "emoji": "🍯",
+      "color": "Blue",
+      "points": 0,
+      "keywords": [],
+      "text": "Worth +1 for each different color in your Row at the world's end.",
+      "immediateEffect": null,
+      "endEffect": {
+        "type": "scoreForUniqueColors",
+        "params": {
+          "perColor": 1
+        }
+      },
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Zero-body diversity payoff."
+    },
+    {
+      "id": "t254",
+      "name": "Fear Pheromone",
+      "emoji": "🫥",
+      "color": "Red",
+      "points": 2,
+      "keywords": [],
+      "text": "The next opponent reveals their hand and skips their action this Age.",
+      "immediateEffect": {
+        "type": "revealHandFullText",
+        "params": {
+          "target": "nextOpponent",
+          "then": {
+            "type": "skipNextPlayer",
+            "params": {
+              "target": "nextOpponent"
+            }
+          }
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Reveal plus skip combo."
+    },
+    {
+      "id": "t255",
+      "name": "Regrowth Node",
+      "emoji": "🌱",
+      "color": "Green",
+      "points": 2,
+      "keywords": [],
+      "text": "Return a card from the discard pile to your hand, then draw 1.",
+      "immediateEffect": {
+        "type": "reviveFromDiscard",
+        "params": {
+          "choose": true,
+          "then": {
+            "type": "draw",
+            "params": {
+              "count": 1
+            }
+          }
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Recur plus draw."
+    },
+    {
+      "id": "t256",
+      "name": "Iron Discipline",
+      "emoji": "🎖️",
+      "color": "Blue",
+      "points": 3,
+      "keywords": [],
+      "text": "Your hand limit is increased by 2.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "handLimitMod",
+        "params": {
+          "amount": 2
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Bigger hand-limit boost."
+    },
+    {
+      "id": "t257",
+      "name": "Contagion Bloom",
+      "emoji": "🌺",
+      "color": "Purple",
+      "points": 3,
+      "keywords": [],
+      "text": "Poison a random Trait in the next two opponents' Rows.",
+      "immediateEffect": {
+        "type": "poison",
+        "params": {
+          "target": "allOpponents"
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Spread poison."
+    },
+    {
+      "id": "t258",
+      "name": "Tenacious Rootlet",
+      "emoji": "🪴",
+      "color": "Green",
+      "points": 2,
+      "keywords": [],
+      "text": "The first time one of your Traits would be destroyed, this is discarded instead.",
+      "immediateEffect": null,
+      "endEffect": null,
+      "passiveEffect": {
+        "type": "shieldLikeBlock",
+        "params": {
+          "scope": "firstDestroy"
+        }
+      },
+      "quantity": 1,
+      "designNotes": "Another destroy shield."
+    },
+    {
+      "id": "t259",
+      "name": "Bloom Cascade",
+      "emoji": "🌼",
+      "color": "Green",
+      "points": -1,
+      "keywords": [],
+      "text": "Play 2 additional Green Traits this turn.",
+      "immediateEffect": {
+        "type": "grantExtraPlays",
+        "params": {
+          "count": 2,
+          "colors": [
+            "Green"
+          ]
+        }
+      },
+      "endEffect": null,
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Green chaining tempo."
+    },
+    {
+      "id": "t260",
+      "name": "Vantage Perch",
+      "emoji": "🦅",
+      "color": "Blue",
+      "points": 2,
+      "keywords": [],
+      "text": "At the world's end, +3 if you are the points leader.",
+      "immediateEffect": null,
+      "endEffect": {
+        "type": "scoreIfCondition",
+        "params": {
+          "cond": "isPointLeader",
+          "ifTrue": 3,
+          "ifFalse": 0
+        }
+      },
+      "passiveEffect": null,
+      "quantity": 1,
+      "designNotes": "Leader reward."
     }
   ],
   "ages": [

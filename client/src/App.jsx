@@ -101,6 +101,8 @@ function TraitCard({ card, actionLabel, onAction, disabled, subtle = false }) {
   const points = card.effectivePoints ?? card.points ?? 0;
   const keywordKey = card.instanceId || card.id || card.name;
   const conditionLabel = playConditionLabel(card);
+  const attachments = card.attachments || [];
+  const isProtected = attachments.some((att) => (att.protect || []).length > 0);
   const classNames = [
     "trait-card",
     "trait-card--enter",
@@ -109,7 +111,8 @@ function TraitCard({ card, actionLabel, onAction, disabled, subtle = false }) {
     keywords.includes("Dominant") ? "trait-card--dominant" : "",
     keywords.includes("Late") ? "trait-card--late" : "",
     card.status?.poisoned ? "trait-card--poisoned" : "",
-    card.parasiteOwnerName ? "trait-card--parasite" : ""
+    card.parasiteOwnerName ? "trait-card--parasite" : "",
+    attachments.length ? "trait-card--attached" : ""
   ]
     .filter(Boolean)
     .join(" ");
@@ -143,7 +146,34 @@ function TraitCard({ card, actionLabel, onAction, disabled, subtle = false }) {
         {card.status?.poisoned ? <span className="status-pill">Poison {card.status.poisoned}</span> : null}
         {card.parasiteOwnerName ? <span className="status-pill">Parasite by {card.parasiteOwnerName}</span> : null}
         {card.isDoubled ? <span className="meta-pill">x2 this Age</span> : null}
+        {isProtected ? <span className="meta-pill meta-pill--protected">Protected</span> : null}
       </div>
+      {attachments.length ? (
+        <div className="trait-card__attachments">
+          {attachments.map((att) => (
+            <span
+              key={att.instanceId}
+              className={`attachment-chip attachment-chip--color-${colorKey(att.color)}`}
+              title={
+                (att.protect || []).length
+                  ? `Cannot be ${att.protect.join(" / ")}`
+                  : att.valueBonus
+                    ? `${att.valueBonus > 0 ? "+" : ""}${att.valueBonus} value`
+                    : att.name
+              }
+            >
+              <span aria-hidden="true">{att.emoji}</span>
+              {att.name}
+              {att.valueBonus ? (
+                <strong>
+                  {att.valueBonus > 0 ? "+" : ""}
+                  {att.valueBonus}
+                </strong>
+              ) : null}
+            </span>
+          ))}
+        </div>
+      ) : null}
       {actionLabel ? (
         <button className="secondary-button" type="button" onClick={onAction} disabled={disabled}>
           {actionLabel}
