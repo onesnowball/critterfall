@@ -299,7 +299,7 @@ function PlayerBoard({ player, isCurrent, isMe, dimmed = false }) {
     .join(" ");
 
   return (
-    <section className={classNames}>
+    <section className={classNames} data-anim-zone="board" data-anim-player={player.id}>
       {isCurrent ? <span className="turn-flag">▶ Playing</span> : null}
       <div className="board-panel__header">
         <div>
@@ -589,6 +589,118 @@ function TiebreakRoll({ roll }) {
         </div>
         {settled ? <p className="tiebreak__result">🎲 {roll.winnerName} is chosen!</p> : null}
       </div>
+    </div>
+  );
+}
+
+function prefersReducedMotion() {
+  return Boolean(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+}
+
+function escapeAttr(value) {
+  const str = String(value);
+  if (window.CSS && typeof window.CSS.escape === "function") {
+    return window.CSS.escape(str);
+  }
+  return str.replace(/["\\\]]/g, "\\$&");
+}
+
+function screenCenter() {
+  return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+}
+
+function resolveZonePoint(loc, meId) {
+  if (!loc) {
+    return screenCenter();
+  }
+
+  let selector = null;
+  if (loc.zone === "discard") {
+    selector = '[data-anim-zone="discard"]';
+  } else if (loc.zone === "draw") {
+    selector = '[data-anim-zone="draw"]';
+  } else if (loc.zone === "hand" && loc.playerId === meId) {
+    selector = '[data-anim-zone="hand"]';
+  } else if (loc.playerId) {
+    selector = `[data-anim-zone="board"][data-anim-player="${escapeAttr(loc.playerId)}"]`;
+  }
+
+  let el = selector ? document.querySelector(selector) : null;
+  if (!el && loc.playerId) {
+    el = document.querySelector(`[data-anim-player="${escapeAttr(loc.playerId)}"]`);
+  }
+  if (!el) {
+    return screenCenter();
+  }
+
+  const rect = el.getBoundingClientRect();
+  return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+}
+
+function Flight({ flight, onDone }) {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) {
+      return undefined;
+    }
+
+    const dx = flight.to.x - flight.from.x;
+    const dy = flight.to.y - flight.from.y;
+    const anim = el.animate(
+      [
+        { transform: "translate(-50%, -50%) translate(0px, 0px) scale(0.85) rotate(-6deg)", opacity: 0 },
+        { transform: "translate(-50%, -50%) translate(0px, 0px) scale(1.05) rotate(0deg)", opacity: 1, offset: 0.14 },
+        {
+          transform: `translate(-50%, -50%) translate(${dx * 0.5}px, ${dy * 0.5 - 26}px) scale(1) rotate(4deg)`,
+          opacity: 1,
+          offset: 0.55
+        },
+        {
+          transform: `translate(-50%, -50%) translate(${dx}px, ${dy}px) scale(0.72) rotate(9deg)`,
+          opacity: 1,
+          offset: 0.92
+        },
+        { transform: `translate(-50%, -50%) translate(${dx}px, ${dy}px) scale(0.5) rotate(12deg)`, opacity: 0 }
+      ],
+      { duration: 760, delay: flight.delay || 0, easing: "cubic-bezier(0.34, 0.9, 0.3, 1)", fill: "both" }
+    );
+
+    const handleFinish = () => onDone(flight.key);
+    anim.addEventListener("finish", handleFinish);
+
+    return () => {
+      anim.removeEventListener("finish", handleFinish);
+      anim.cancel();
+    };
+  }, [flight.key]);
+
+  const card = flight.card || {};
+
+  return (
+    <div
+      ref={ref}
+      className={`flight-card flight-card--${flight.type}`}
+      style={{ left: `${flight.from.x}px`, top: `${flight.from.y}px`, "--flight-color": card.color || "#9aa0b5" }}
+      aria-hidden="true"
+    >
+      <span className="flight-card__emoji">{card.emoji || "❔"}</span>
+      {typeof card.points === "number" ? <span className="flight-card__points">{card.points}</span> : null}
+    </div>
+  );
+}
+
+function FlyingCards({ flights, onDone }) {
+  if (!flights.length) {
+    return null;
+  }
+
+  return (
+    <div className="flight-layer" aria-hidden="true">
+      {flights.map((flight) => (
+        <Flight key={flight.key} flight={flight} onDone={onDone} />
+      ))}
     </div>
   );
 }
@@ -971,9 +1083,12 @@ function App() {
   const [ageAnnouncement, setAgeAnnouncement] = useState(null);
   const [playSpotlight, setPlaySpotlight] = useState(null);
   const [tiebreak, setTiebreak] = useState(null);
+  const [flights, setFlights] = useState([]);
   const lastPlaySeqRef = useRef(0);
   const lastPlayTimeRef = useRef(0);
   const tiebreakSeqRef = useRef(0);
+  const lastAnimSeqRef = useRef(0);
+  const animReadyRef = useRef(false);
 
   useEffect(() => {
     const handleConnect = () => {
@@ -1085,6 +1200,67 @@ function App() {
     const timer = window.setTimeout(() => setTiebreak(null), 3600);
     return () => window.clearTimeout(timer);
   }, [roomState?.tiebreakRoll?.seq, isPlaying]);
+
+  useEffect(() => {
+    const events = roomState?.animEvents;
+    if (!Array.isArray(events) || !events.length) {
+      return;
+    }
+
+    const maxSeq = events[events.length - 1].seq;
+
+    // First sighting (join / game start): set a baseline so we don't replay
+    // history as one big burst of flights.
+    if (!animReadyRef.current) {
+      animReadyRef.current = true;
+      lastAnimSeqRef.current = maxSeq;
+      return;
+    }
+
+    // The sequence restarted (a new game) — rebase without animating the deal.
+    if (maxSeq < lastAnimSeqRef.current) {
+      lastAnimSeqRef.current = maxSeq;
+      return;
+    }
+
+    const fresh = events.filter((event) => event.seq > lastAnimSeqRef.current);
+    lastAnimSeqRef.current = maxSeq;
+
+    if (!fresh.length || prefersReducedMotion()) {
+      return;
+    }
+
+    const meId = roomState.youPlayerId;
+    const playable = fresh
+      .filter((event) => {
+        if (event.card && event.card.hidden) {
+          return false;
+        }
+        if (event.type === "discard") {
+          return true;
+        }
+        if (event.type === "draw") {
+          return event.to?.playerId === meId;
+        }
+        return false;
+      })
+      .slice(-8);
+
+    if (!playable.length) {
+      return;
+    }
+
+    const spawned = playable.map((event, index) => ({
+      key: `f${event.seq}`,
+      type: event.type,
+      card: event.card,
+      from: resolveZonePoint(event.from, meId),
+      to: resolveZonePoint(event.to, meId),
+      delay: index * 85
+    }));
+
+    setFlights((prev) => [...prev, ...spawned]);
+  }, [roomState?.animEvents]);
 
   useEffect(() => {
     if (localStorage.getItem(GUIDE_SEEN_KEY)) {
@@ -1205,6 +1381,10 @@ function App() {
       setError(response.message || "Could not start the game.");
       setBusyAction("");
     }
+  }
+
+  function removeFlight(key) {
+    setFlights((prev) => prev.filter((flight) => flight.key !== key));
   }
 
   async function playTrait(cardInstanceId) {
@@ -1480,6 +1660,7 @@ function App() {
         <AgeAnnouncement age={ageAnnouncement} />
         <PlaySpotlight play={playSpotlight} />
         <TiebreakRoll roll={tiebreak} />
+        <FlyingCards flights={flights} onDone={removeFlight} />
         <section key={roomState.currentAge?.id || "age"} className="panel panel--hero age-panel">
           <div className="section-heading">
             <div>
@@ -1508,7 +1689,7 @@ function App() {
             <div className="status-strip">
               <span className="meta-pill">Room {roomState.code}</span>
               {roomState.currentAge?.isCatastrophe ? <span className="status-pill">Catastrophe</span> : null}
-              <span className="meta-pill">Deck {roomState.drawPileCount}</span>
+              <span className="meta-pill" data-anim-zone="draw">Deck {roomState.drawPileCount}</span>
               <span className="meta-pill">Discard {roomState.discardPileCount}</span>
             </div>
           </div>
@@ -1568,7 +1749,7 @@ function App() {
               {hand.length} card{hand.length === 1 ? "" : "s"}
             </span>
           </div>
-          <div className="hand-grid">
+          <div className="hand-grid" data-anim-zone="hand">
             {hand.length ? (
               hand.map((card) => (
                 <TraitCard
@@ -1601,7 +1782,7 @@ function App() {
               {roomState.discardPileCount} card{roomState.discardPileCount === 1 ? "" : "s"}
             </span>
           </div>
-          <div className="discard-grid">
+          <div className="discard-grid" data-anim-zone="discard">
             {roomState.discardPile?.length ? (
               roomState.discardPile.map((card) => <TraitCard key={card.instanceId} card={card} subtle />)
             ) : (

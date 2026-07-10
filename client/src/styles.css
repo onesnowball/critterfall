@@ -886,6 +886,51 @@ input {
   pointer-events: none;
 }
 
+.flight-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 44;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.flight-card {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 58px;
+  height: 74px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--flight-color) 70%, #ffffff 12%);
+  background: radial-gradient(120% 120% at 50% 14%, color-mix(in srgb, var(--flight-color) 52%, #10140d) 0%, #10140d 80%);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45), 0 0 18px color-mix(in srgb, var(--flight-color) 55%, transparent);
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+
+.flight-card__emoji {
+  font-size: 30px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
+}
+
+.flight-card__points {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--flight-color) 82%, #000000 12%);
+  color: #f7fff0;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
 .tiebreak {
   position: fixed;
   z-index: 46;
@@ -1837,6 +1882,10 @@ input {
   }
 
   .play-spotlight__card::before {
+    display: none;
+  }
+
+  .flight-layer {
     display: none;
   }
 

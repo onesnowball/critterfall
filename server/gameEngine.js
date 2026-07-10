@@ -170,7 +170,9 @@ function createRoom(code, hostId, hostName) {
     nextChoiceId: 1,
     lastPlayedTrait: null,
     revealedHands: {},
-    lockedBonuses: {}
+    lockedBonuses: {},
+    animEvents: [],
+    nextAnimSeq: 1
   };
 
   addLog(room, `${host.name} created the room.`);
@@ -373,7 +375,37 @@ function modifyGenePoolSize(room, player, amount, sourceName = "Effect") {
   return delta;
 }
 
-function addToDiscard(room, card, discardedById = null) {
+function animCardSnapshot(card) {
+  if (!card) {
+    return null;
+  }
+
+  return {
+    id: card.id,
+    name: card.name,
+    emoji: card.emoji || "",
+    color: normalizeColor(card.colorOverride || card.color),
+    points: printedPoints(card)
+  };
+}
+
+function pushAnim(room, event) {
+  if (!room.animEvents) {
+    room.animEvents = [];
+    room.nextAnimSeq = room.nextAnimSeq || 1;
+  }
+
+  const seq = room.nextAnimSeq++;
+  room.animEvents.push({ seq, ...event });
+
+  if (room.animEvents.length > 60) {
+    room.animEvents = room.animEvents.slice(-60);
+  }
+
+  return seq;
+}
+
+function addToDiscard(room, card, discardedById = null, fromZone = "board") {
   const attachments = cardAttachments(card);
 
   const nextCard = {
@@ -386,6 +418,13 @@ function addToDiscard(room, card, discardedById = null) {
   };
 
   room.discardPile.push(nextCard);
+
+  pushAnim(room, {
+    type: "discard",
+    card: animCardSnapshot(nextCard),
+    from: { zone: fromZone, playerId: discardedById || null },
+    to: { zone: "discard" }
+  });
 
   attachments.forEach((att) => {
     const detached = { ...att, attachSpec: null, attachments: [] };
@@ -420,6 +459,13 @@ function drawCard(room, player, count = 1) {
     card.originalOwnerId ||= player.id;
     player.hand.push(card);
     drawn += 1;
+
+    pushAnim(room, {
+      type: "draw",
+      card: animCardSnapshot(card),
+      from: { zone: "draw" },
+      to: { zone: "hand", playerId: player.id }
+    });
   }
 
   return drawn;
@@ -443,7 +489,7 @@ function discardCardFromHand(room, player, cardIndex = null) {
 
   const index = cardIndex == null ? Math.floor(Math.random() * player.hand.length) : cardIndex;
   const [card] = player.hand.splice(index, 1);
-  addToDiscard(room, card, player.id);
+  addToDiscard(room, card, player.id, "hand");
   return card;
 }
 
@@ -2786,6 +2832,8 @@ function startGame(room, playerId) {
   room.phase = "playing";
   room.traitDeck = createTraitDeck();
   room.discardPile = [];
+  room.animEvents = [];
+  room.nextAnimSeq = 1;
   room.ageDeck = createAgeDeck(room.players.length);
   room.currentAge = null;
   room.ageIndex = 0;
@@ -3591,6 +3639,8 @@ function newGame(room, playerId) {
   room.phase = "lobby";
   room.traitDeck = [];
   room.discardPile = [];
+  room.animEvents = [];
+  room.nextAnimSeq = 1;
   room.ageDeck = [];
   room.currentAge = null;
   room.ageIndex = 0;
@@ -3839,6 +3889,18 @@ function sanitizePendingChoice(room, viewerId) {
   };
 }
 
+function sanitizeAnimEvents(room, playerId) {
+  const events = room.animEvents || [];
+
+  return events.slice(-30).map((event) => {
+    if (event.type === "draw" && event.to?.playerId && event.to.playerId !== playerId) {
+      return { ...event, card: { hidden: true } };
+    }
+
+    return event;
+  });
+}
+
 function sanitizeRoomForPlayer(room, playerId) {
   const viewer = findPlayer(room, playerId);
   const current = currentPlayer(room);
@@ -3867,6 +3929,7 @@ function sanitizeRoomForPlayer(room, playerId) {
     pendingChoice: sanitizePendingChoice(room, playerId),
     turnState: room.turnState,
     tiebreakRoll: room.tiebreakRoll || null,
+    animEvents: sanitizeAnimEvents(room, playerId),
     finalScores: room.finalScores,
     lastPlayedTrait: room.lastPlayedTrait?.card
       ? {
