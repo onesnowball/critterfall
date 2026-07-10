@@ -387,6 +387,7 @@ function animCardSnapshot(card) {
 
   return {
     id: card.id,
+    instanceId: card.instanceId || null,
     name: card.name,
     emoji: card.emoji || "",
     color: normalizeColor(card.colorOverride || card.color),
@@ -422,6 +423,21 @@ function animMove(room, fromPlayer, toPlayer, card, opts = {}) {
     to: { zone: opts.toZone || "board", playerId: toPlayer.id },
     actorId: opts.actorId || toPlayer.id,
     tone: opts.tone || "attack"
+  });
+}
+
+function animFromDiscard(room, toPlayer, card, toZone = "board") {
+  if (!toPlayer || !card) {
+    return;
+  }
+
+  pushAnim(room, {
+    type: "move",
+    card: animCardSnapshot(card),
+    from: { zone: "discard" },
+    to: { zone: toZone, playerId: toPlayer.id },
+    actorId: toPlayer.id,
+    tone: "help"
   });
 }
 
@@ -484,7 +500,26 @@ function animSwap(room, playerA, playerB) {
   });
 }
 
-function addToDiscard(room, card, discardedById = null, fromZone = "board") {
+// Send a host card's attachments to the discard pile, detached and cleaned.
+// Call this whenever a host LEAVES the board to somewhere its attachments can't
+// ride along — discarded, bounced to hand, or itself becoming an attachment —
+// so its parasites/augments settle in the discard instead of vanishing from
+// the game. The card's own `attachments` array should be cleared by the caller.
+function discardAttachments(room, attachments, discardedById = null) {
+  for (const att of Array.isArray(attachments) ? attachments : []) {
+    room.discardPile.push({
+      ...att,
+      attachSpec: null,
+      attachments: [],
+      status: {},
+      discardedById: att.attachSpec?.playedById || discardedById,
+      parasiteOwnerId: null,
+      parasiteValue: null
+    });
+  }
+}
+
+function addToDiscard(room, card, discardedById = null, fromZone = "board", fromPlayerId = discardedById) {
   const attachments = cardAttachments(card);
 
   const nextCard = {
@@ -501,20 +536,11 @@ function addToDiscard(room, card, discardedById = null, fromZone = "board") {
   pushAnim(room, {
     type: "discard",
     card: animCardSnapshot(nextCard),
-    from: { zone: fromZone, playerId: discardedById || null },
+    from: { zone: fromZone, playerId: fromPlayerId || null },
     to: { zone: "discard" }
   });
 
-  attachments.forEach((att) => {
-    const detached = { ...att, attachSpec: null, attachments: [] };
-    room.discardPile.push({
-      ...detached,
-      status: {},
-      discardedById: att.attachSpec?.playedById || discardedById,
-      parasiteOwnerId: null,
-      parasiteValue: null
-    });
-  });
+  discardAttachments(room, attachments, discardedById);
 
   return nextCard;
 }
@@ -830,7 +856,7 @@ function consumeDestroyBlocker(room, player, blocker, targetCard) {
 
   const [removed] = player.board.splice(index, 1);
   animShield(room, player, "Blocked");
-  addToDiscard(room, removed, removed.ownerId || player.id);
+  addToDiscard(room, removed, removed.ownerId || player.id, "board", player.id);
   addLog(room, `${removed.name} blocked ${targetCard.name} from being destroyed, then was discarded.`);
   return true;
 }
@@ -929,7 +955,7 @@ function removeBoardEntry(room, entry, reason = "destroyed", options = {}) {
   }
 
   animDestroy(room, entry.player, card);
-  addToDiscard(room, card, card.ownerId || entry.player.id);
+  addToDiscard(room, card, card.ownerId || entry.player.id, "board", entry.player.id);
   entry.player.flags.destroyedThisGame = true;
 
   if (/wipe|age/i.test(reason)) {
@@ -1005,8 +1031,12 @@ function reviveOrPlayDiscard(room, actor, sourceCard, params = {}, mode = "reviv
 
     const [card] = entry.player.board.splice(entry.index, 1);
     const owner = findPlayer(room, card.ownerId) || entry.player;
+    const strippedAttachments = cardAttachments(card);
     card.status = {};
+    card.attachments = [];
     owner.hand.push(card);
+    discardAttachments(room, strippedAttachments, entry.player.id);
+    animMove(room, entry.player, owner, card, { toZone: "hand", tone: "help" });
     addLog(room, `${sourceCard.name} returned ${card.name} to ${owner.name}'s hand.`);
     return;
   }
@@ -1030,12 +1060,14 @@ function reviveOrPlayDiscard(room, actor, sourceCard, params = {}, mode = "reviv
 
   if (params.toZone === "hand") {
     actor.hand.push(card);
+    animFromDiscard(room, actor, card, "hand");
     addLog(room, `${actor.name} returned ${card.name} from the discard pile to hand.`, actor.id);
     addLog(room, `${actor.name} returned a card from the discard pile to hand.`);
     return;
   }
 
   actor.board.push(card);
+  animFromDiscard(room, actor, card, "board");
   addLog(room, `${actor.name} ${mode === "play" ? "played" : "revived"} ${card.name} from the discard pile.`);
 }
 
@@ -1298,12 +1330,14 @@ function applyDiscardChoice(room, choice, option, actor) {
 
   if (choice.params?.toZone === "hand") {
     actor.hand.push(card);
+    animFromDiscard(room, actor, card, "hand");
     addLog(room, `${actor.name} returned ${card.name} from the discard pile to hand.`, actor.id);
     addLog(room, `${actor.name} returned a card from the discard pile to hand.`);
     return false;
   }
 
   actor.board.push(card);
+  animFromDiscard(room, actor, card, "board");
   addLog(room, `${actor.name} ${choice.mode === "play" ? "played" : "revived"} ${card.name} from the discard pile.`);
   return false;
 }
@@ -1351,7 +1385,7 @@ function applyFaceDownHandChoice(room, choice, option, actor) {
   const [card] = target.hand.splice(index, 1);
 
   if (choice.mode === "discard") {
-    addToDiscard(room, card, target.id);
+    addToDiscard(room, card, target.id, "hand");
     addLog(room, `${choice.sourceCard.name} made ${target.name} discard ${card.name}.`, target.id);
     addLog(room, `${choice.sourceCard.name} made ${target.name} discard a card.`);
     return nextHandTargetChoice(room, choice, actor);
@@ -1414,7 +1448,7 @@ function applyHandLimitDiscardChoice(room, choice, option, actor) {
   }
 
   const [card] = actor.hand.splice(index, 1);
-  addToDiscard(room, card, actor.id);
+  addToDiscard(room, card, actor.id, "hand");
   addLog(room, `${actor.name} discarded ${card.name} down to their Gene Pool.`, actor.id);
   addLog(room, `${actor.name} discarded down to their Gene Pool.`);
   return needsHandLimitDiscard(actor) ? handLimitDiscardChoice(room, actor) : false;
@@ -1532,7 +1566,7 @@ function applyAgeRansomChoice(room, choice, option, actor) {
 
   if (handIndex !== -1) {
     const [card] = actor.hand.splice(handIndex, 1);
-    addToDiscard(room, card, actor.id);
+    addToDiscard(room, card, actor.id, "hand");
     addLog(room, `${actor.name} discarded ${card.name} to protect a Trait.`, actor.id);
   }
 
@@ -1665,10 +1699,25 @@ function applyPeekPlayChoice(room, choice, option, actor) {
 
 function performAttach(room, actor, sourceCard, params, hostPlayer, hostCard, context = {}) {
   const selfIndex = actor.board.findIndex((candidate) => candidate.instanceId === sourceCard.instanceId);
-  let attachmentCard = sourceCard;
+  let attachmentCard;
 
   if (selfIndex !== -1) {
     [attachmentCard] = actor.board.splice(selfIndex, 1);
+    // A card can't carry its own attachments while it becomes one — release
+    // them to the discard rather than orphaning them as sub-attachments.
+    const orphaned = cardAttachments(attachmentCard);
+    if (orphaned.length) {
+      discardAttachments(room, orphaned, actor.id);
+      attachmentCard.attachments = [];
+    }
+  } else {
+    // sourceCard is not on the actor's board — this happens when an "attach"
+    // effect is COPIED (Last Word, Echo Reflex, Mimic Octopus): it runs with the
+    // original opponent card as its source. A copy must not relocate the real
+    // card, so attach a fresh spawned instance instead of the live reference.
+    attachmentCard = createCardInstance(sourceCard);
+    attachmentCard.ownerId = actor.id;
+    attachmentCard.originalOwnerId = actor.id;
   }
 
   attachmentCard.attachSpec = {
@@ -2438,7 +2487,7 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
         for (let i = 0; i < count && person.hand.length; i += 1) {
           const idx = Math.floor(Math.random() * person.hand.length);
           const [card] = person.hand.splice(idx, 1);
-          addToDiscard(room, card, person.id);
+          addToDiscard(room, card, person.id, "hand");
           dropped += 1;
         }
 
@@ -2458,7 +2507,7 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
         const drawn = actor.hand.pop();
 
         if (isDominant(drawn)) {
-          addToDiscard(room, drawn, actor.id);
+          addToDiscard(room, drawn, actor.id, "hand");
           addLog(room, `${actor.name} drew ${drawn.name} (Dominant) and discarded it.`);
         } else {
           drawn.ownerId = actor.id;
@@ -2501,7 +2550,7 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
 
       while (actor.hand.length) {
         const [card] = actor.hand.splice(0, 1);
-        addToDiscard(room, card, actor.id);
+        addToDiscard(room, card, actor.id, "hand");
       }
 
       actor.flags.noDrawThisAge = true;
@@ -3052,7 +3101,7 @@ function payPlayCost(room, player, card) {
   for (let i = player.hand.length - 1; i >= 0 && remaining > 0; i -= 1) {
     if (normalizeColor(player.hand[i].color) === color) {
       const [dropped] = player.hand.splice(i, 1);
-      addToDiscard(room, dropped, player.id);
+      addToDiscard(room, dropped, player.id, "hand");
       addLog(room, `${player.name} discarded ${dropped.name} to play ${card.name}.`, player.id);
       remaining -= 1;
     }
@@ -3061,7 +3110,7 @@ function payPlayCost(room, player, card) {
   for (let i = player.board.length - 1; i >= 0 && remaining > 0; i -= 1) {
     if (effectiveColor(player, player.board[i]) === color) {
       const [dropped] = player.board.splice(i, 1);
-      addToDiscard(room, dropped, dropped.ownerId || player.id);
+      addToDiscard(room, dropped, dropped.ownerId || player.id, "board", player.id);
       addLog(room, `${player.name} discarded ${dropped.name} to play ${card.name}.`, player.id);
       remaining -= 1;
     }
@@ -3290,8 +3339,11 @@ function playCard(room, playerId, cardInstanceId) {
 
     if (normalizeColor(boardCard.passiveEffect.params?.color || "Green") === playedColor) {
       const [returned] = player.board.splice(index, 1);
+      const shedAttachments = cardAttachments(returned);
       returned.status = {};
+      returned.attachments = [];
       player.hand.push(returned);
+      discardAttachments(room, shedAttachments, player.id);
       addLog(room, `${returned.name} returned to ${player.name}'s hand after a ${playedColor} Trait was played.`, player.id);
     }
   }
@@ -3471,7 +3523,7 @@ function discardCard(room, playerId, cardInstanceId) {
   }
 
   const [card] = player.hand.splice(cardIndex, 1);
-  addToDiscard(room, card, player.id);
+  addToDiscard(room, card, player.id, "hand");
   room.pendingDiscard = null;
   addLog(room, `${player.name} discarded ${card.name}.`, player.id);
   addLog(room, `${player.name} discarded a card.`);
