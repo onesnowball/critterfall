@@ -470,7 +470,7 @@
       "name": "Gene Boom",
       "emoji": "💥",
       "color": "Green",
-      "points": 4,
+      "points": 3,
       "keywords": [],
       "text": "Immediate: increase your Gene Pool by 2, then draw 2. High points, no defense.",
       "immediateEffect": {
@@ -2876,7 +2876,8 @@
         "type": "dynamicValue",
         "params": {
           "basis": "genePoolSize",
-          "per": 1
+          "per": 1,
+          "cap": 6
         }
       },
       "quantity": 2,
@@ -2938,7 +2939,7 @@
           "per": 2
         }
       },
-      "quantity": 4,
+      "quantity": 3,
       "designNotes": "Stacks with copies of itself; collect the set."
     },
     {
@@ -3013,13 +3014,13 @@
       "name": "Crimson Poacher",
       "emoji": "🎯",
       "color": "Purple",
-      "points": 3,
+      "points": 2,
       "keywords": [],
       "text": "Steal a Red Trait from any opponent's Trait Row.",
       "immediateEffect": {
         "type": "stealChosenPublicTrait",
         "params": {
-          "target": "anyPlayer",
+          "target": "allOpponents",
           "color": "Red"
         }
       },
@@ -3098,7 +3099,7 @@
       "name": "Final Gambit",
       "emoji": "🎲",
       "color": "Red",
-      "points": 5,
+      "points": 4,
       "keywords": [
         "Late"
       ],
@@ -3326,7 +3327,7 @@
         "type": "dynamicValue",
         "params": {
           "basis": "discardPileSize",
-          "per": 0.34
+          "perGroup": 3
         }
       },
       "quantity": 1,
@@ -3556,7 +3557,7 @@
       "name": "Panic Shed",
       "emoji": "😰",
       "color": "Purple",
-      "points": 8,
+      "points": 6,
       "keywords": [
         "Dominant"
       ],
@@ -3595,7 +3596,7 @@
       "name": "Peek Predator",
       "emoji": "👁️",
       "color": "Purple",
-      "points": 3,
+      "points": 2,
       "keywords": [],
       "text": "Look at 2 random cards in an opponent's hand, take the better one, and play it at once.",
       "immediateEffect": {
@@ -3621,7 +3622,7 @@
       "immediateEffect": {
         "type": "stealChosenPublicTrait",
         "params": {
-          "target": "anyPlayer",
+          "target": "allOpponents",
           "color": "Blue"
         }
       },
@@ -3641,7 +3642,7 @@
       "immediateEffect": {
         "type": "stealChosenPublicTrait",
         "params": {
-          "target": "anyPlayer",
+          "target": "allOpponents",
           "color": "Green"
         }
       },
@@ -4155,7 +4156,8 @@
         "type": "dynamicValue",
         "params": {
           "basis": "genePoolSize",
-          "per": 1
+          "per": 1,
+          "cap": 6
         }
       },
       "quantity": 1,
@@ -4632,7 +4634,7 @@
       "name": "Bulwark Ridge",
       "emoji": "⛰️",
       "color": "Green",
-      "points": 4,
+      "points": 3,
       "keywords": [
         "Dominant"
       ],
@@ -4960,7 +4962,7 @@
       "immediateEffect": {
         "type": "stealChosenPublicTrait",
         "params": {
-          "target": "anyPlayer",
+          "target": "allOpponents",
           "color": "Purple"
         }
       },

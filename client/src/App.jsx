@@ -390,6 +390,10 @@ function choiceActionLabel(choice) {
     return "Attach Here";
   }
 
+  if (choice.type === "copyImmediate") {
+    return "Copy This";
+  }
+
   if (choice.type === "publicTrait") {
     if (choice.mode === "steal") {
       return "Steal This";
@@ -895,6 +899,7 @@ function App() {
   const [ageAnnouncement, setAgeAnnouncement] = useState(null);
   const [playSpotlight, setPlaySpotlight] = useState(null);
   const lastPlaySeqRef = useRef(0);
+  const lastPlayTimeRef = useRef(0);
 
   useEffect(() => {
     const handleConnect = () => {
@@ -968,9 +973,17 @@ function App() {
       return undefined;
     }
 
-    setAgeAnnouncement(roomState.currentAge);
-    const timer = window.setTimeout(() => setAgeAnnouncement(null), 2600);
-    return () => window.clearTimeout(timer);
+    // If a Trait was just played in the same update that advanced the Age (the
+    // last player's move), hold the Age banner briefly so that play is seen first.
+    const sinceLastPlay = Date.now() - lastPlayTimeRef.current;
+    const holdForLastPlay = sinceLastPlay < 900 ? 2400 : 0;
+
+    const revealTimer = window.setTimeout(() => setAgeAnnouncement(roomState.currentAge), holdForLastPlay);
+    const clearTimer = window.setTimeout(() => setAgeAnnouncement(null), holdForLastPlay + 3200);
+    return () => {
+      window.clearTimeout(revealTimer);
+      window.clearTimeout(clearTimer);
+    };
   }, [isPlaying, roomState?.currentAge?.id]);
 
   useEffect(() => {
@@ -982,8 +995,9 @@ function App() {
       return undefined;
     }
     lastPlaySeqRef.current = lastPlay.seq;
+    lastPlayTimeRef.current = Date.now();
     setPlaySpotlight({ ...lastPlay, key: lastPlay.seq });
-    const timer = window.setTimeout(() => setPlaySpotlight(null), 1900);
+    const timer = window.setTimeout(() => setPlaySpotlight(null), 3200);
     return () => window.clearTimeout(timer);
   }, [roomState?.lastPlayedTrait?.seq, isPlaying]);
 

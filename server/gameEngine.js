@@ -285,8 +285,14 @@ function dynamicTraitValue(player, card, room = null) {
     count = Math.min(count, Number(params.cap));
   }
 
-  const value = count * Number(params.per ?? 1) + Number(params.base || 0);
-  return Number(value) * Number(card?.pointMultiplier || 1);
+  let value;
+  if (params.perGroup) {
+    value = Math.floor(count / Number(params.perGroup)) + Number(params.base || 0);
+  } else {
+    value = count * Number(params.per ?? 1) + Number(params.base || 0);
+  }
+
+  return Math.round(value * Number(card?.pointMultiplier || 1));
 }
 
 function cardAttachments(card) {
@@ -791,16 +797,9 @@ function discardOwnerId(card) {
 }
 
 function discardCardEntries(room, actor, params = {}) {
-  const owner = params.owner || params.fromOwner || "self";
-  let cards = room.discardPile.map((card, index) => ({ card, index }));
-
-  if (owner === "self") {
-    cards = cards.filter(({ card }) => discardOwnerId(card) === actor.id);
-  } else if (owner === "opponent") {
-    cards = cards.filter(({ card }) => discardOwnerId(card) !== actor.id);
-  }
-
-  return cards;
+  // The discard pile is a single public pile shared by everyone. Any effect that
+  // pulls from it may pick any card, regardless of who discarded it.
+  return room.discardPile.map((card, index) => ({ card, index }));
 }
 
 function selectDiscardCard(room, actor, params = {}) {
@@ -993,11 +992,18 @@ function queueGiveHandCardChoice(room, actor, target, sourceCard, params = {}, c
   );
 }
 
-function publicTraitChoiceEntries(room, actor, params = {}) {
+function publicTraitChoiceEntries(room, actor, params = {}, mode = "destroy") {
+  // Preservation Order (and similar) lock every Trait Row: nothing may be
+  // stolen, destroyed, or poisoned this Age.
+  if (ageRules(room).lockTraitRow) {
+    return [];
+  }
+
   const options = {
     allowDominant: Boolean(params.allowDominant),
     filter: params.filter,
-    color: params.color
+    color: params.color,
+    protectKind: mode === "steal" ? "steal" : mode === "destroy" ? "remove" : undefined
   };
   const targets = targetPlayers(room, actor, params.target || "nextOpponent");
   let entries = eligibleTraitEntries(room, targets, options);
@@ -1008,11 +1014,16 @@ function publicTraitChoiceEntries(room, actor, params = {}) {
     entries = eligibleTraitEntries(room, targetPlayers(room, actor, "allOpponents"), options);
   }
 
+  // You can never steal from your own Trait Row.
+  if (mode === "steal") {
+    entries = entries.filter((entry) => entry.player.id !== actor.id);
+  }
+
   return entries;
 }
 
 function queuePublicTraitChoice(room, actor, sourceCard, params = {}, mode = "destroy", context = {}) {
-  const entries = publicTraitChoiceEntries(room, actor, params);
+  const entries = publicTraitChoiceEntries(room, actor, params, mode);
 
   if (!entries.length) {
     return false;
@@ -1377,6 +1388,11 @@ function applyPublicTraitChoice(room, choice, option, actor) {
   }
 
   if (choice.mode === "steal") {
+    if (ageRules(room).lockTraitRow || entry.player.id === actor.id || attachmentProtects(entry.card, "steal")) {
+      addLog(room, `${entry.card.name} could not be stolen.`);
+      return false;
+    }
+
     const [stolen] = entry.player.board.splice(entry.index, 1);
     stolen.ownerId = actor.id;
     actor.board.push(stolen);
@@ -1397,7 +1413,7 @@ function applyPublicTraitChoice(room, choice, option, actor) {
     ...choice,
     remainingCount
   };
-  nextChoice.choices = publicTraitChoiceEntries(room, actor, choice.params).map((nextEntry) => ({
+  nextChoice.choices = publicTraitChoiceEntries(room, actor, choice.params, choice.mode).map((nextEntry) => ({
     id: nextEntry.card.instanceId,
     ownerId: nextEntry.player.id,
     cardInstanceId: nextEntry.card.instanceId
@@ -1538,6 +1554,57 @@ function applyAttachChoice(room, choice, option, actor) {
   // performAttach already ran playHostAction and params.then; neutralize the
   // then so resolveChoice's post-switch applyThen doesn't fire it twice.
   choice.params = { ...choice.params, then: null };
+  return false;
+}
+
+function copyableImmediateEntries(room, actor, sourceCard) {
+  return room.players.flatMap((player) =>
+    player.board
+      .filter(
+        (card) =>
+          card.immediateEffect &&
+          card.immediateEffect.type !== "copyImmediate" &&
+          card.instanceId !== sourceCard.instanceId
+      )
+      .map((card) => ({ player, card }))
+  );
+}
+
+function queueCopyImmediateChoice(room, actor, sourceCard, params, entries, context) {
+  return queueChoice(
+    room,
+    {
+      type: "copyImmediate",
+      playerId: actor.id,
+      actorId: actor.id,
+      sourceCard,
+      params,
+      prompt: choicePrompt(sourceCard, "choose a Trait already in play to copy its effect"),
+      choices: entries.map((entry) => ({
+        id: entry.card.instanceId,
+        ownerId: entry.player.id,
+        cardInstanceId: entry.card.instanceId
+      }))
+    },
+    context
+  );
+}
+
+function applyCopyImmediateChoice(room, choice, option, actor) {
+  const owner = findPlayer(room, option.ownerId);
+  const target = owner?.board.find((candidate) => candidate.instanceId === option.cardInstanceId);
+
+  if (!target?.immediateEffect) {
+    return false;
+  }
+
+  addLog(room, `${choice.sourceCard.name} copied ${target.name}.`);
+  applyEffect(room, actor, target.immediateEffect, target, {
+    copyDepth: 1,
+    finishAfterChoice: choice.finishAfterChoice
+  });
+  // The copied effect may queue its own choice; the post-switch flow bails on a
+  // pending choice, so just report "no further followup from the copy itself".
   return false;
 }
 
@@ -1747,7 +1814,11 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
 
       targets.forEach((target) => {
         if (params.zone === "pool") {
-          const entry = selectTraitEntry(room, [target], "randomNonDominantTrait");
+          if (target.id === actor.id || ageRules(room).lockTraitRow) {
+            return;
+          }
+
+          const entry = selectTraitEntry(room, [target], "randomNonDominantTrait", { protectKind: "steal" });
 
           if (!entry) {
             return;
@@ -1783,7 +1854,15 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
         }
       }
 
-      const target = targetPlayers(room, actor, params.target || "opponentHighestGenePoolPoints")[0];
+      if (ageRules(room).lockTraitRow) {
+        addLog(room, `${sourceCard.name} could not steal: Trait Rows are locked this Age.`);
+        break;
+      }
+
+      const stealTargets = targetPlayers(room, actor, params.target || "opponentHighestGenePoolPoints").filter(
+        (candidate) => candidate.id !== actor.id
+      );
+      const target = stealTargets[0];
       const entry = target
         ? selectTraitEntry(room, [target], params.fallback || "highestPointNonDominantTrait", {
             color: params.color,
@@ -1915,13 +1994,34 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
         break;
       }
 
-      const copySource = context.previousTrait || room.lastPlayedTrait?.card;
+      const copyables = copyableImmediateEntries(room, actor, sourceCard);
 
-      if (copySource?.immediateEffect && copySource.instanceId !== sourceCard.instanceId) {
-        addLog(room, `${sourceCard.name} copied ${copySource.name}.`);
-        applyEffect(room, actor, copySource.immediateEffect, copySource, { copyDepth: 1, effectDepth: context.effectDepth });
+      if (!copyables.length) {
+        addLog(room, `${sourceCard.name} found no Trait effect to copy.`);
+        break;
       }
-      break;
+
+      if (context.finishAfterChoice && copyables.length > 1) {
+        const pending = queueCopyImmediateChoice(room, actor, sourceCard, params, copyables, context);
+
+        if (pending) {
+          return true;
+        }
+      }
+
+      const previous = context.previousTrait || room.lastPlayedTrait?.card;
+      const copyEntry =
+        (previous && copyables.find((entry) => entry.card.instanceId === previous.instanceId)) ||
+        copyables[copyables.length - 1];
+
+      addLog(room, `${sourceCard.name} copied ${copyEntry.card.name}.`);
+      return Boolean(
+        applyEffect(room, actor, copyEntry.card.immediateEffect, copyEntry.card, {
+          copyDepth: 1,
+          effectDepth: context.effectDepth,
+          finishAfterChoice: context.finishAfterChoice
+        })
+      );
     }
 
     case "copyTrait": {
@@ -3078,6 +3178,9 @@ function resolveChoice(room, playerId, choiceId, optionId) {
     case "attachHost":
       followup = applyAttachChoice(room, choice, option, actor);
       break;
+    case "copyImmediate":
+      followup = applyCopyImmediateChoice(room, choice, option, actor);
+      break;
     case "targetPlayer":
       followup = applyTargetPlayerChoice(room, choice, option, actor);
       break;
@@ -3604,7 +3707,7 @@ function decorateChoiceOption(room, choice, option, viewerId) {
       : null;
   }
 
-  if (choice.type === "publicTrait" || choice.type === "attachHost") {
+  if (choice.type === "publicTrait" || choice.type === "attachHost" || choice.type === "copyImmediate") {
     const owner = findPlayer(room, option.ownerId);
     const card = owner?.board.find((candidate) => candidate.instanceId === option.cardInstanceId);
     return card

@@ -895,7 +895,7 @@ input {
   border: 2px solid rgba(255, 250, 241, 0.28);
   background: linear-gradient(160deg, rgba(24, 30, 22, 0.92), rgba(41, 52, 36, 0.9));
   box-shadow: 0 22px 60px rgba(10, 14, 9, 0.5);
-  animation: play-spotlight-in 1900ms cubic-bezier(0.16, 0.9, 0.3, 1.15) both;
+  animation: play-spotlight-in 3200ms cubic-bezier(0.16, 0.9, 0.3, 1.15) both;
 }
 
 .play-spotlight__inner--you {
@@ -919,7 +919,7 @@ input {
   position: relative;
   width: min(240px, 70vw);
   transform-origin: center bottom;
-  animation: play-card-pop 1900ms cubic-bezier(0.16, 0.9, 0.3, 1.15) both;
+  animation: play-card-pop 3200ms cubic-bezier(0.16, 0.9, 0.3, 1.15) both;
 }
 
 .play-spotlight__card::before {
