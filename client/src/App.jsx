@@ -184,7 +184,7 @@ function playConditionLabel(card) {
 function CardArt({ card }) {
   const [failed, setFailed] = useState(false);
   const hasArt = card.id && ART_IDS.has(card.id);
-  const src = hasArt ? `${import.meta.env.BASE_URL}art/${card.id}.png` : null;
+  const src = hasArt ? `${import.meta.env.BASE_URL}art/${card.id}.webp` : null;
 
   if (!src || failed) {
     return (
@@ -478,10 +478,18 @@ function AgeAnnouncement({ age }) {
     return null;
   }
 
+  const hasArt = age.id && ART_IDS.has(age.id);
+
   return (
     <div className="age-backdrop" aria-hidden="true">
       <div className={`age-announcement${age.isCatastrophe ? " age-announcement--catastrophe" : ""}`}>
-        <span className="age-announcement__emoji">{age.emoji}</span>
+        {hasArt ? (
+          <span className="age-announcement__art">
+            <img src={`${import.meta.env.BASE_URL}art/${age.id}.webp`} alt="" />
+          </span>
+        ) : (
+          <span className="age-announcement__emoji">{age.emoji}</span>
+        )}
         <p className="eyebrow">{age.isCatastrophe ? "☄️ Catastrophe" : `Age ${age.number}`}</p>
         <h2>{age.name}</h2>
         <p className="age-announcement__sub">{age.text || (age.isCatastrophe ? "The world convulses…" : "A new Age dawns")}</p>

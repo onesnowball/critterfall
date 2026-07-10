@@ -3,3 +3,6 @@ dist/
 .DS_Store
 npm-debug.log*
 
+
+# Isolated art-generation tooling (sharp)
+scripts/.artgen-tools/

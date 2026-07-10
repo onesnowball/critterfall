@@ -741,6 +741,24 @@ input {
   animation: age-emoji-pop 2600ms ease both;
 }
 
+.age-announcement__art {
+  display: block;
+  width: min(360px, 74vw);
+  aspect-ratio: 16 / 10;
+  margin: 0 auto 10px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(10, 14, 9, 0.5), inset 0 0 0 1px rgba(255, 250, 241, 0.18);
+  animation: age-emoji-pop 2600ms ease both;
+}
+
+.age-announcement__art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .age-announcement h2 {
   font-size: clamp(2rem, 5.6vw, 3.6rem);
   margin: 4px 0;
