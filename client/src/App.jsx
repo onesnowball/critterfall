@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import artManifest from "./artManifest.json";
+
+const ART_IDS = new Set(artManifest);
 import { SERVER_URL, socket } from "./socket";
 
 const SAVED_NAME_KEY = "critterfall-player-name";
@@ -178,6 +181,26 @@ function playConditionLabel(card) {
   return null;
 }
 
+function CardArt({ card }) {
+  const [failed, setFailed] = useState(false);
+  const hasArt = card.id && ART_IDS.has(card.id);
+  const src = hasArt ? `${import.meta.env.BASE_URL}art/${card.id}.png` : null;
+
+  if (!src || failed) {
+    return (
+      <span className="trait-card__emoji" aria-hidden="true">
+        {card.emoji}
+      </span>
+    );
+  }
+
+  return (
+    <span className="trait-card__art" aria-hidden="true">
+      <img src={src} alt="" loading="lazy" onError={() => setFailed(true)} />
+    </span>
+  );
+}
+
 function TraitCard({ card, actionLabel, onAction, disabled, subtle = false }) {
   const keywords = card.keywords || [];
   const points = card.effectivePoints ?? card.points ?? 0;
@@ -202,9 +225,7 @@ function TraitCard({ card, actionLabel, onAction, disabled, subtle = false }) {
   return (
     <article className={classNames}>
       <div className="trait-card__top">
-        <span className="trait-card__emoji" aria-hidden="true">
-          {card.emoji}
-        </span>
+        <CardArt card={card} />
         <div className="trait-card__title">
           <h4>{card.name}</h4>
           <span
