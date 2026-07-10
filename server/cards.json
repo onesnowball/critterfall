@@ -2776,7 +2776,7 @@
       "immediateEffect": {
         "type": "swapHands",
         "params": {
-          "target": "nextOpponent"
+          "choose": true
         }
       },
       "endEffect": null,

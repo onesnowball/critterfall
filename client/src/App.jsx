@@ -411,6 +411,14 @@ function choiceActionLabel(choice) {
   }
 
   if (choice.type === "targetPlayer") {
+    if (choice.mode === "swapHands") {
+      return "Swap Here";
+    }
+
+    if (choice.mode === "placeParasite") {
+      return "Place Here";
+    }
+
     return "Choose";
   }
 
@@ -516,6 +524,70 @@ function PlaySpotlight({ play }) {
         <div className="play-spotlight__card">
           <TraitCard card={play.card} subtle />
         </div>
+      </div>
+    </div>
+  );
+}
+
+function TiebreakRoll({ roll }) {
+  const [highlight, setHighlight] = useState(0);
+  const [settled, setSettled] = useState(false);
+
+  useEffect(() => {
+    if (!roll) {
+      return undefined;
+    }
+
+    setSettled(false);
+    const names = roll.candidates || [];
+    const winnerIndex = Math.max(0, names.findIndex((candidate) => candidate.id === roll.winnerId));
+    let tick = 0;
+    // Spin through the names, decelerating, then land on the winner.
+    const totalTicks = 16 + winnerIndex;
+    let timer;
+
+    const spin = () => {
+      tick += 1;
+      setHighlight((prev) => (prev + 1) % Math.max(1, names.length));
+
+      if (tick >= totalTicks) {
+        setHighlight(winnerIndex);
+        setSettled(true);
+        return;
+      }
+
+      const delay = 70 + Math.max(0, tick - 8) * 32;
+      timer = window.setTimeout(spin, delay);
+    };
+
+    timer = window.setTimeout(spin, 70);
+    return () => window.clearTimeout(timer);
+  }, [roll?.seq]);
+
+  if (!roll) {
+    return null;
+  }
+
+  const names = roll.candidates || [];
+
+  return (
+    <div className="tiebreak" key={roll.seq} aria-live="polite">
+      <div className={`tiebreak__inner${settled ? " tiebreak__inner--settled" : ""}`}>
+        <p className="tiebreak__title">Tie-breaker roll</p>
+        <p className="tiebreak__label">for {roll.label}</p>
+        <div className="tiebreak__names">
+          {names.map((candidate, index) => (
+            <span
+              key={candidate.id}
+              className={`tiebreak__name${index === highlight ? " tiebreak__name--active" : ""}${
+                settled && candidate.id === roll.winnerId ? " tiebreak__name--winner" : ""
+              }`}
+            >
+              {candidate.name}
+            </span>
+          ))}
+        </div>
+        {settled ? <p className="tiebreak__result">🎲 {roll.winnerName} is chosen!</p> : null}
       </div>
     </div>
   );
@@ -898,8 +970,10 @@ function App() {
   const [guidePage, setGuidePage] = useState(0);
   const [ageAnnouncement, setAgeAnnouncement] = useState(null);
   const [playSpotlight, setPlaySpotlight] = useState(null);
+  const [tiebreak, setTiebreak] = useState(null);
   const lastPlaySeqRef = useRef(0);
   const lastPlayTimeRef = useRef(0);
+  const tiebreakSeqRef = useRef(0);
 
   useEffect(() => {
     const handleConnect = () => {
@@ -1000,6 +1074,17 @@ function App() {
     const timer = window.setTimeout(() => setPlaySpotlight(null), 3200);
     return () => window.clearTimeout(timer);
   }, [roomState?.lastPlayedTrait?.seq, isPlaying]);
+
+  useEffect(() => {
+    const roll = roomState?.tiebreakRoll;
+    if (!isPlaying || !roll?.seq || roll.seq === tiebreakSeqRef.current) {
+      return undefined;
+    }
+    tiebreakSeqRef.current = roll.seq;
+    setTiebreak(roll);
+    const timer = window.setTimeout(() => setTiebreak(null), 3600);
+    return () => window.clearTimeout(timer);
+  }, [roomState?.tiebreakRoll?.seq, isPlaying]);
 
   useEffect(() => {
     if (localStorage.getItem(GUIDE_SEEN_KEY)) {
@@ -1394,6 +1479,7 @@ function App() {
       <main className="app-shell">
         <AgeAnnouncement age={ageAnnouncement} />
         <PlaySpotlight play={playSpotlight} />
+        <TiebreakRoll roll={tiebreak} />
         <section key={roomState.currentAge?.id || "age"} className="panel panel--hero age-panel">
           <div className="section-heading">
             <div>

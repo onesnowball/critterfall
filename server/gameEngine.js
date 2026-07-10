@@ -589,15 +589,15 @@ function targetPlayers(room, actor, target = "nextOpponent") {
     case "nextOpponent":
       return players.length ? [players[(actorIndex + 1) % players.length]].filter((player) => player?.id !== actor?.id) : [];
     case "opponentMostCardsInHand":
-      return bestPlayers(opponents, (player) => player.hand.length, "desc");
+      return bestPlayers(opponents, (player) => player.hand.length, "desc", room, "most cards in hand");
     case "opponentHighestGenePoolPoints":
-      return bestPlayers(opponents, boardPoints, "desc");
+      return bestPlayers(opponents, boardPoints, "desc", room, "most Trait points");
     case "opponentLowestGenePoolPoints":
-      return bestPlayers(opponents, boardPoints, "asc");
+      return bestPlayers(opponents, boardPoints, "asc", room, "fewest Trait points");
     case "opponentLargestDiscard":
-      return bestPlayers(opponents, (player) => discardCardsFor(room, player.id).length, "desc");
+      return bestPlayers(opponents, (player) => discardCardsFor(room, player.id).length, "desc", room, "largest discard");
     case "opponentSmallestPool":
-      return bestPlayers(opponents, (player) => player.board.length, "asc");
+      return bestPlayers(opponents, (player) => player.board.length, "asc", room, "smallest Trait Row");
     case "anyPlayer":
       return players.filter((player) => player.board.length);
     default:
@@ -605,17 +605,41 @@ function targetPlayers(room, actor, target = "nextOpponent") {
   }
 }
 
-function bestPlayers(players, scorer, direction = "desc") {
+function bestPlayers(players, scorer, direction = "desc", room = null, label = null) {
   if (!players.length) {
     return [];
   }
 
-  const sorted = [...players].sort((a, b) => {
-    const diff = scorer(a) - scorer(b);
-    return direction === "asc" ? diff : -diff;
-  });
+  const scored = players.map((player) => ({ player, value: scorer(player) }));
+  const bestValue = scored.reduce(
+    (best, cur) => (direction === "asc" ? Math.min(best, cur.value) : Math.max(best, cur.value)),
+    direction === "asc" ? Infinity : -Infinity
+  );
+  const tied = scored.filter((entry) => entry.value === bestValue).map((entry) => entry.player);
 
-  return [sorted[0]];
+  if (tied.length <= 1) {
+    return [tied[0]];
+  }
+
+  const winner = tied[Math.floor(Math.random() * tied.length)];
+
+  if (room && label) {
+    recordTiebreak(room, tied, winner, label);
+  }
+
+  return [winner];
+}
+
+function recordTiebreak(room, tied, winner, label) {
+  room.tiebreakSeq = (room.tiebreakSeq || 0) + 1;
+  room.tiebreakRoll = {
+    seq: room.tiebreakSeq,
+    label,
+    candidates: tied.map((player) => ({ id: player.id, name: player.name })),
+    winnerId: winner.id,
+    winnerName: winner.name
+  };
+  addLog(room, `Tie for ${label} — a random roll landed on ${winner.name}.`);
 }
 
 function nonDominantBoardEntries(room, players, allowDominant = false) {
@@ -1080,6 +1104,31 @@ function queueParasiteTargetChoice(room, actor, card, context = {}) {
       heldCard: card,
       params,
       prompt: choicePrompt(card, "choose which Trait Row receives this Parasite"),
+      choices
+    },
+    context
+  );
+}
+
+function queueSwapTargetChoice(room, actor, sourceCard, params, opponents, context = {}) {
+  const choices = opponents
+    .filter((player) => player.id !== actor.id)
+    .map((player) => ({ id: player.id, playerId: player.id, label: player.name }));
+
+  if (!choices.length) {
+    return false;
+  }
+
+  return queueChoice(
+    room,
+    {
+      type: "targetPlayer",
+      mode: "swapHands",
+      playerId: actor.id,
+      actorId: actor.id,
+      sourceCard,
+      params,
+      prompt: choicePrompt(sourceCard, "choose an opponent to swap hands with"),
       choices
     },
     context
@@ -1609,11 +1658,23 @@ function applyCopyImmediateChoice(room, choice, option, actor) {
 }
 
 function applyTargetPlayerChoice(room, choice, option, actor) {
+  const chosen = findPlayer(room, option.playerId);
+
+  if (choice.mode === "swapHands") {
+    if (!chosen) {
+      return false;
+    }
+
+    [actor.hand, chosen.hand] = [chosen.hand, actor.hand];
+    addLog(room, `${actor.name} swapped hands with ${chosen.name}.`);
+    return false;
+  }
+
   if (choice.mode !== "placeParasite") {
     return false;
   }
 
-  const target = findPlayer(room, option.playerId);
+  const target = chosen;
   const card = choice.heldCard || choice.sourceCard;
 
   if (!target || !card) {
@@ -1882,7 +1943,12 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
     }
 
     case "destroyOpponentTrait": {
-      if (context.finishAfterChoice) {
+      // Most removal cards name their target by a rule ("lowest", "most recent",
+      // "the leader's") and must auto-resolve. Only cards that let the player
+      // pick — explicit `choose`, or "a Trait played this Age" — open a picker.
+      const allowChoice = Boolean(params.choose) || params.filter === "playedThisAge";
+
+      if (context.finishAfterChoice && allowChoice) {
         const pending = queuePublicTraitChoice(room, actor, sourceCard, params, "destroy", context);
 
         if (pending) {
@@ -1891,10 +1957,15 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
       }
 
       const fallback = params.fallback || "lowestPointNonDominantTrait";
-      let entry = selectTraitEntry(room, targetPlayers(room, actor, params.target || "nextOpponent"), fallback);
+      const selectOptions = {
+        protectKind: "remove",
+        color: params.color,
+        allowDominant: Boolean(params.allowDominant)
+      };
+      let entry = selectTraitEntry(room, targetPlayers(room, actor, params.target || "nextOpponent"), fallback, selectOptions);
 
       if (!entry && params.target !== "self" && params.target !== "allPlayers") {
-        entry = selectTraitEntry(room, targetPlayers(room, actor, "allOpponents"), fallback);
+        entry = selectTraitEntry(room, targetPlayers(room, actor, "allOpponents"), fallback, selectOptions);
       }
 
       if (entry) {
@@ -1973,8 +2044,6 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
     }
 
     case "swapHands": {
-      const targets = targetPlayers(room, actor, params.target || "nextOpponent");
-
       if (params.mode === "rotate" || params.mode === "rotateLeft1" || params.target === "allPlayers") {
         const players = orderedPlayers(room);
         const hands = players.map((player) => player.hand);
@@ -1982,9 +2051,26 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
           player.hand = hands[(index + 1) % hands.length] || [];
         });
         addLog(room, `${sourceCard.name} rotated everyone's hand.`);
-      } else if (targets[0]) {
-        [actor.hand, targets[0].hand] = [targets[0].hand, actor.hand];
-        addLog(room, `${actor.name} swapped hands with ${targets[0].name}.`);
+        break;
+      }
+
+      // "Swap with an opponent of your choice" opens a picker; fixed-target
+      // swaps (e.g. "the next opponent") resolve automatically.
+      const opponents = targetPlayers(room, actor, "allOpponents");
+
+      if (context.finishAfterChoice && params.choose && opponents.length > 1) {
+        const pending = queueSwapTargetChoice(room, actor, sourceCard, params, opponents, context);
+
+        if (pending) {
+          return true;
+        }
+      }
+
+      const target = params.choose ? opponents[0] : targetPlayers(room, actor, params.target || "nextOpponent")[0];
+
+      if (target) {
+        [actor.hand, target.hand] = [target.hand, actor.hand];
+        addLog(room, `${actor.name} swapped hands with ${target.name}.`);
       }
       break;
     }
@@ -3780,6 +3866,7 @@ function sanitizeRoomForPlayer(room, playerId) {
     pendingDiscard: room.pendingDiscard?.playerId === playerId ? room.pendingDiscard : null,
     pendingChoice: sanitizePendingChoice(room, playerId),
     turnState: room.turnState,
+    tiebreakRoll: room.tiebreakRoll || null,
     finalScores: room.finalScores,
     lastPlayedTrait: room.lastPlayedTrait?.card
       ? {
