@@ -1288,10 +1288,11 @@ function App() {
       return undefined;
     }
 
-    // If a Trait was just played in the same update that advanced the Age (the
-    // last player's move), hold the Age banner briefly so that play is seen first.
+    // Let the board settle before the Age banner takes over: always wait a
+    // beat, and wait noticeably longer if a Trait just resolved (so its flight
+    // and any destroy/steal animations finish before the Age sweeps in).
     const sinceLastPlay = Date.now() - lastPlayTimeRef.current;
-    const holdForLastPlay = sinceLastPlay < 900 ? 2400 : 0;
+    const holdForLastPlay = sinceLastPlay < 1600 ? 3000 : 1200;
 
     const age = roomState.currentAge;
     const revealTimer = window.setTimeout(() => {
@@ -1300,7 +1301,7 @@ function App() {
         setAgeSweep({ key: age.id, catastrophe: Boolean(age.isCatastrophe) });
       }
     }, holdForLastPlay);
-    const clearTimer = window.setTimeout(() => setAgeAnnouncement(null), holdForLastPlay + 3200);
+    const clearTimer = window.setTimeout(() => setAgeAnnouncement(null), holdForLastPlay + 4200);
     const sweepClearTimer = window.setTimeout(() => setAgeSweep(null), holdForLastPlay + 1150);
     return () => {
       window.clearTimeout(revealTimer);
