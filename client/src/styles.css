@@ -953,6 +953,330 @@ input {
   filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
 }
 
+/* ===========================================================================
+   Card-specific in-place effects. Each plays anchored to the exact rect the
+   card occupied, so destroy / discard / poison read as happening to THAT card.
+   destroy & discard render an opaque replica (the real card has already left);
+   poison overlays a toxic wash on the card, which stays in play beneath it.
+   =========================================================================== */
+.card-fx-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 46;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.card-fx {
+  position: fixed;
+  pointer-events: none;
+  --fx-accent: #7655a2;
+  --fx-dx: 0px;
+  --fx-dy: 0px;
+}
+
+.card-fx__card {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(28, 34, 24, 0.96), rgba(16, 20, 13, 0.96));
+  border: 1px solid color-mix(in srgb, var(--fx-accent) 62%, #ffffff 8%);
+  box-shadow: inset 0 6px 0 var(--fx-accent), 0 14px 30px rgba(0, 0, 0, 0.5);
+  will-change: transform, opacity, filter;
+}
+
+.card-fx__art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.94;
+}
+
+.card-fx__emoji {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 34px;
+}
+
+.card-fx__name {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 8px 8px 6px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.15;
+  color: #f7fff0;
+  text-align: center;
+  background: linear-gradient(0deg, rgba(6, 9, 5, 0.92), transparent);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.card-fx__points {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--fx-accent) 84%, #000000 14%);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.card-fx__flash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.95), rgba(255, 210, 130, 0.4) 45%, transparent 72%);
+  opacity: 0;
+  mix-blend-mode: screen;
+}
+
+/* ---- DESTROY: jolt, white-hot flash, shockwave, shatter into shards ---- */
+.card-fx--destroy .card-fx__card {
+  animation: fx-destroy-card 920ms cubic-bezier(0.3, 0.05, 0.2, 1) forwards;
+}
+
+.card-fx--destroy .card-fx__flash {
+  animation: fx-destroy-flash 920ms ease-out forwards;
+}
+
+@keyframes fx-destroy-card {
+  0% {
+    transform: translate(0, 0) scale(1) rotate(0);
+    filter: none;
+  }
+  10% {
+    transform: translate(0, -3px) scale(1.05);
+    filter: brightness(1.6);
+  }
+  20% {
+    transform: translate(-4px, 2px) scale(1.05) rotate(-2deg);
+  }
+  30% {
+    transform: translate(4px, -2px) scale(1.06) rotate(2deg);
+    filter: brightness(1.9) saturate(1.4);
+    box-shadow: inset 0 6px 0 var(--fx-accent), 0 0 30px rgba(255, 120, 60, 0.9), 0 14px 30px rgba(0, 0, 0, 0.5);
+  }
+  40% {
+    transform: translate(-3px, 2px) scale(1.05) rotate(-1.5deg);
+  }
+  55% {
+    transform: translate(0, 3px) scale(1.02) rotate(1deg);
+    filter: brightness(1.3);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(0, 14px) scale(0.6) rotate(10deg);
+    filter: brightness(0.7) saturate(0.55);
+    opacity: 0;
+  }
+}
+
+@keyframes fx-destroy-flash {
+  0% {
+    opacity: 0;
+  }
+  24% {
+    opacity: 0.95;
+  }
+  48% {
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.card-fx__ring {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 42%;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  border: 3px solid rgba(255, 150, 90, 0.9);
+  transform: translate(-50%, -50%) scale(0.2);
+  opacity: 0;
+  animation: fx-destroy-ring 920ms ease-out forwards;
+}
+
+@keyframes fx-destroy-ring {
+  0% {
+    transform: translate(-50%, -50%) scale(0.15);
+    opacity: 0;
+  }
+  28% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.7);
+    opacity: 0;
+    border-width: 1px;
+  }
+}
+
+.card-fx__shards {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  width: 0;
+  height: 0;
+}
+
+.card-fx__shards i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 13px;
+  height: 13px;
+  margin: -6.5px;
+  background: linear-gradient(135deg, var(--fx-accent), #10140d);
+  box-shadow: 0 0 8px rgba(255, 140, 70, 0.6);
+  opacity: 0;
+  animation: fx-shard 780ms cubic-bezier(0.2, 0.6, 0.3, 1) forwards;
+}
+
+.card-fx__shards i:nth-child(1) { --sx: -70px; --sy: -54px; clip-path: polygon(0 0, 100% 30%, 40% 100%); animation-delay: 190ms; }
+.card-fx__shards i:nth-child(2) { --sx: 68px; --sy: -60px; clip-path: polygon(0 20%, 100% 0, 80% 100%); animation-delay: 205ms; }
+.card-fx__shards i:nth-child(3) { --sx: -86px; --sy: 22px; clip-path: polygon(0 40%, 100% 0, 70% 100%); animation-delay: 200ms; }
+.card-fx__shards i:nth-child(4) { --sx: 88px; --sy: 28px; clip-path: polygon(0 0, 100% 50%, 30% 100%); animation-delay: 220ms; }
+.card-fx__shards i:nth-child(5) { --sx: -44px; --sy: 76px; clip-path: polygon(0 0, 100% 20%, 50% 100%); animation-delay: 235ms; }
+.card-fx__shards i:nth-child(6) { --sx: 52px; --sy: 82px; clip-path: polygon(0 30%, 100% 0, 100% 100%); animation-delay: 245ms; }
+.card-fx__shards i:nth-child(7) { --sx: -16px; --sy: -86px; clip-path: polygon(0 0, 100% 40%, 60% 100%); animation-delay: 215ms; }
+.card-fx__shards i:nth-child(8) { --sx: 22px; --sy: 90px; clip-path: polygon(0 10%, 100% 0, 40% 100%); animation-delay: 255ms; }
+
+@keyframes fx-shard {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0) scale(0.6);
+  }
+  22% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--sx), var(--sy)) rotate(220deg) scale(1);
+  }
+}
+
+/* ---- DISCARD: desaturate, crumple (squash + skew), slump toward the pile ---- */
+.card-fx--discard .card-fx__card {
+  transform-origin: 50% 40%;
+  animation: fx-discard-card 860ms cubic-bezier(0.4, 0, 0.3, 1) forwards;
+}
+
+@keyframes fx-discard-card {
+  0% {
+    transform: translate(0, 0) scale(1) rotate(0) skewX(0);
+    filter: none;
+    opacity: 1;
+  }
+  16% {
+    transform: translate(0, -8px) scale(1.02) rotate(-2deg);
+    filter: saturate(0.9);
+  }
+  46% {
+    transform: translate(calc(var(--fx-dx) * 0.35), calc(var(--fx-dy) * 0.3 - 4px)) scale(0.92, 0.84) rotate(4deg) skewX(-6deg);
+    filter: grayscale(0.5) brightness(0.9);
+  }
+  100% {
+    transform: translate(var(--fx-dx), var(--fx-dy)) scale(0.5, 0.4) rotate(12deg) skewX(-12deg);
+    filter: grayscale(0.85) brightness(0.68);
+    opacity: 0;
+  }
+}
+
+/* ---- POISON: the card stays; toxic wash rises, bubbles, a skull floats up ---- */
+.card-fx--poison {
+  border-radius: 16px;
+  animation: fx-poison-frame 1150ms ease-out forwards;
+}
+
+@keyframes fx-poison-frame {
+  0% { box-shadow: 0 0 0 0 rgba(120, 200, 70, 0); }
+  20% { box-shadow: 0 0 0 3px rgba(120, 200, 70, 0.85), 0 0 26px rgba(120, 200, 70, 0.5); }
+  70% { box-shadow: 0 0 0 2px rgba(120, 200, 70, 0.4), 0 0 16px rgba(120, 200, 70, 0.28); }
+  100% { box-shadow: 0 0 0 0 rgba(120, 200, 70, 0); }
+}
+
+.card-fx__wash {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 100%;
+  border-radius: 16px;
+  background:
+    radial-gradient(60% 30% at 30% 12%, rgba(180, 240, 120, 0.5), transparent 70%),
+    linear-gradient(0deg, rgba(88, 168, 52, 0.68), rgba(120, 200, 70, 0.26) 55%, transparent 82%);
+  transform: translateY(100%);
+  opacity: 0;
+  animation: fx-poison-wash 1150ms cubic-bezier(0.3, 0.7, 0.3, 1) forwards;
+}
+
+.card-fx__wash::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background-image:
+    radial-gradient(circle, rgba(220, 255, 170, 0.9) 0 3px, transparent 4px),
+    radial-gradient(circle, rgba(200, 250, 150, 0.8) 0 2px, transparent 3px),
+    radial-gradient(circle, rgba(230, 255, 180, 0.85) 0 2.5px, transparent 3.5px);
+  background-size: 40% 60%, 55% 70%, 30% 50%;
+  background-position: 20% 120%, 60% 130%, 80% 115%;
+  background-repeat: no-repeat;
+  animation: fx-poison-bubbles 1150ms ease-in forwards;
+}
+
+@keyframes fx-poison-wash {
+  0% { transform: translateY(100%); opacity: 0; }
+  22% { transform: translateY(16%); opacity: 1; }
+  60% { transform: translateY(5%); opacity: 1; }
+  100% { transform: translateY(0%); opacity: 0; }
+}
+
+@keyframes fx-poison-bubbles {
+  0% { background-position: 20% 120%, 60% 130%, 80% 115%; opacity: 0; }
+  30% { opacity: 1; }
+  100% { background-position: 22% -20%, 58% -30%, 82% -10%; opacity: 0; }
+}
+
+.card-fx__emblem {
+  position: absolute;
+  left: 50%;
+  top: 54%;
+  font-size: 40px;
+  transform: translate(-50%, -50%) scale(0.4);
+  opacity: 0;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.6));
+  animation: fx-poison-emblem 1150ms cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+}
+
+@keyframes fx-poison-emblem {
+  0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
+  26% { transform: translate(-50%, -64%) scale(1.15); opacity: 1; }
+  62% { transform: translate(-50%, -78%) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -104%) scale(0.9); opacity: 0; }
+}
+
+.zone-badge--poison .zone-badge__icon {
+  font-size: 20px;
+}
+
 .zone-badge-layer {
   position: fixed;
   inset: 0;
@@ -2093,6 +2417,7 @@ input {
   }
 
   .flight-layer,
+  .card-fx-layer,
   .zone-badge-layer,
   .target-arrow-layer,
   .age-sweep {

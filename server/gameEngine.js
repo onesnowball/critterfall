@@ -486,6 +486,14 @@ function animDestroy(room, player, card = null) {
   pushAnim(room, { type: "destroy", playerId: player.id, card: animCardSnapshot(card) });
 }
 
+function animPoison(room, player, card = null) {
+  if (!player) {
+    return;
+  }
+
+  pushAnim(room, { type: "poison", playerId: player.id, card: animCardSnapshot(card) });
+}
+
 function animSwap(room, playerA, playerB) {
   if (!playerA || !playerB || playerA.id === playerB.id) {
     return;
@@ -1896,6 +1904,7 @@ function poisonTrait(room, entry, turns = 1) {
 
   entry.card.status ||= {};
   entry.card.status.poisoned = Math.max(Number(entry.card.status.poisoned || 0), turns);
+  animPoison(room, entry.player, entry.card);
   addLog(room, `${entry.player.name}'s ${entry.card.name} was poisoned.`);
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import artManifest from "./artManifest.json";
 
 const ART_IDS = new Set(artManifest);
@@ -223,7 +223,7 @@ function TraitCard({ card, actionLabel, onAction, disabled, subtle = false }) {
     .join(" ");
 
   return (
-    <article className={classNames}>
+    <article className={classNames} data-instance-id={card.instanceId || undefined}>
       <div className="trait-card__top">
         <CardArt card={card} />
         <div className="trait-card__title">
@@ -736,6 +736,100 @@ function FlyingCards({ flights, onDone }) {
   );
 }
 
+const FX_ACCENTS = {
+  green: "#4f8b45",
+  red: "#b14b37",
+  blue: "#3f78a8",
+  purple: "#7655a2",
+  colorless: "#7655a2"
+};
+
+function fxAccent(color) {
+  return FX_ACCENTS[colorKey(color)] || FX_ACCENTS.colorless;
+}
+
+// A card-specific effect that plays IN PLACE, anchored to the exact on-screen
+// rect the card occupied. destroy/discard render an opaque replica (the real
+// card is already gone) that shatters or crumples; poison overlays a toxic
+// wash on top of the card, which stays in play beneath it.
+function CardEffect({ effect, onDone }) {
+  useEffect(() => {
+    const timer = window.setTimeout(() => onDone(effect.key), effect.duration || 1000);
+    return () => window.clearTimeout(timer);
+  }, [effect.key]);
+
+  const card = effect.card || {};
+  const hasArt = card.id && ART_IDS.has(card.id);
+  const artSrc = hasArt ? `${import.meta.env.BASE_URL}art/${card.id}.webp` : null;
+
+  return (
+    <div
+      className={`card-fx card-fx--${effect.kind}`}
+      style={{
+        left: `${effect.x}px`,
+        top: `${effect.y}px`,
+        width: `${effect.w}px`,
+        height: `${effect.h}px`,
+        "--fx-accent": effect.accent,
+        "--fx-dx": `${effect.driftX || 0}px`,
+        "--fx-dy": `${effect.driftY || 0}px`
+      }}
+      aria-hidden="true"
+    >
+      {effect.kind === "poison" ? (
+        <>
+          <span className="card-fx__wash" />
+          <span className="card-fx__emblem">☠️</span>
+        </>
+      ) : (
+        <>
+          <div className="card-fx__card">
+            {artSrc ? (
+              <img className="card-fx__art" src={artSrc} alt="" />
+            ) : (
+              <span className="card-fx__emoji">{card.emoji || "❔"}</span>
+            )}
+            <span className="card-fx__name">{card.name}</span>
+            {typeof card.points === "number" ? (
+              <span className="card-fx__points">{formatPoints(card.points)}</span>
+            ) : null}
+            <span className="card-fx__flash" />
+          </div>
+          {effect.kind === "destroy" ? (
+            <>
+              <span className="card-fx__ring" />
+              <span className="card-fx__shards">
+                <i />
+                <i />
+                <i />
+                <i />
+                <i />
+                <i />
+                <i />
+                <i />
+              </span>
+            </>
+          ) : null}
+        </>
+      )}
+    </div>
+  );
+}
+
+function CardEffects({ effects, onDone }) {
+  if (!effects.length) {
+    return null;
+  }
+
+  return (
+    <div className="card-fx-layer" aria-hidden="true">
+      {effects.map((effect) => (
+        <CardEffect key={effect.key} effect={effect} onDone={onDone} />
+      ))}
+    </div>
+  );
+}
+
 function ZoneBadge({ pip, onDone }) {
   useEffect(() => {
     const timer = window.setTimeout(() => onDone(pip.key), pip.duration || 1100);
@@ -1209,12 +1303,39 @@ function App() {
   const [flights, setFlights] = useState([]);
   const [pips, setPips] = useState([]);
   const [arrows, setArrows] = useState([]);
+  const [cardEffects, setCardEffects] = useState([]);
   const [ageSweep, setAgeSweep] = useState(null);
   const lastPlaySeqRef = useRef(0);
   const lastPlayTimeRef = useRef(0);
   const tiebreakSeqRef = useRef(0);
   const lastAnimSeqRef = useRef(0);
   const animReadyRef = useRef(false);
+  // Last-known screen rect of every board / own-hand card, keyed by instanceId.
+  // Captured each render BEFORE the anim effect runs, and never eagerly deleted,
+  // so a card that just left the board still has the spot it occupied — that's
+  // where its destroy / discard / poison effect plays.
+  const cardRectsRef = useRef(new Map());
+
+  useLayoutEffect(() => {
+    const nodes = document.querySelectorAll(
+      '[data-anim-zone="board"] [data-instance-id], [data-anim-zone="hand"] [data-instance-id]'
+    );
+    const map = cardRectsRef.current;
+    nodes.forEach((node) => {
+      const id = node.getAttribute("data-instance-id");
+      if (!id) {
+        return;
+      }
+      const rect = node.getBoundingClientRect();
+      if (!rect.width && !rect.height) {
+        return;
+      }
+      map.set(id, { x: rect.left, y: rect.top, w: rect.width, h: rect.height });
+    });
+    if (map.size > 400) {
+      cardRectsRef.current = new Map(Array.from(map.entries()).slice(-200));
+    }
+  }, [roomState]);
 
   useEffect(() => {
     const handleConnect = () => {
@@ -1369,20 +1490,45 @@ function App() {
     const newFlights = [];
     const newPips = [];
     const newArrows = [];
+    const newCardEffects = [];
+    const rectFor = (inst) => (inst ? cardRectsRef.current.get(inst) : null);
 
     fresh.forEach((event) => {
       const card = event.card || null;
       const hidden = Boolean(card && card.hidden);
+      const rect = card && !hidden ? rectFor(card.instanceId) : null;
 
       if (event.type === "discard") {
-        newFlights.push({
-          event,
-          type: "discard",
-          card,
-          tone: "attack",
-          from: resolveZonePoint(event.from, meId),
-          to: resolveZonePoint(event.to, meId)
-        });
+        // If we know exactly where this card sat, crumple it in place and let it
+        // slump toward the discard pile. Otherwise (hidden opponent-hand discard)
+        // fall back to the generic flying chip.
+        if (rect) {
+          const disc = resolveZonePoint(event.to, meId);
+          const cx = rect.x + rect.w / 2;
+          const cy = rect.y + rect.h / 2;
+          newCardEffects.push({
+            key: `fx${event.seq}`,
+            kind: "discard",
+            card,
+            accent: fxAccent(card.color),
+            x: rect.x,
+            y: rect.y,
+            w: rect.w,
+            h: rect.h,
+            driftX: disc ? (disc.x - cx) * 0.55 : 0,
+            driftY: disc ? (disc.y - cy) * 0.55 : 46,
+            duration: 860
+          });
+        } else {
+          newFlights.push({
+            event,
+            type: "discard",
+            card,
+            tone: "attack",
+            from: resolveZonePoint(event.from, meId),
+            to: resolveZonePoint(event.to, meId)
+          });
+        }
       } else if (event.type === "draw") {
         // Opponent draws are hidden and happen every turn — too noisy to fly.
         if (event.to?.playerId === meId && !hidden) {
@@ -1437,17 +1583,61 @@ function App() {
           });
         }
       } else if (event.type === "destroy") {
-        const point = resolveBoardPoint(event.playerId);
-        if (point) {
-          newPips.push({
-            key: `p${event.seq}`,
+        // Shatter the actual card where it stood. If we somehow lost its rect,
+        // fall back to a burst badge over the owner's board.
+        if (rect) {
+          newCardEffects.push({
+            key: `fx${event.seq}`,
             kind: "destroy",
-            tone: "attack",
-            x: point.x,
-            y: point.y,
-            icon: "💥",
-            text: card && !card.hidden ? card.name : ""
+            card,
+            accent: fxAccent(card.color),
+            x: rect.x,
+            y: rect.y,
+            w: rect.w,
+            h: rect.h,
+            duration: 920
           });
+        } else {
+          const point = resolveBoardPoint(event.playerId);
+          if (point) {
+            newPips.push({
+              key: `p${event.seq}`,
+              kind: "destroy",
+              tone: "attack",
+              x: point.x,
+              y: point.y,
+              icon: "💥",
+              text: card && !card.hidden ? card.name : ""
+            });
+          }
+        }
+      } else if (event.type === "poison") {
+        // The card stays in play — wash it in toxic green right where it sits.
+        if (rect) {
+          newCardEffects.push({
+            key: `fx${event.seq}`,
+            kind: "poison",
+            card,
+            accent: fxAccent(card.color),
+            x: rect.x,
+            y: rect.y,
+            w: rect.w,
+            h: rect.h,
+            duration: 1150
+          });
+        } else {
+          const point = resolveBoardPoint(event.playerId);
+          if (point) {
+            newPips.push({
+              key: `p${event.seq}`,
+              kind: "poison",
+              tone: "attack",
+              x: point.x,
+              y: point.y,
+              icon: "☠️",
+              text: card && !card.hidden ? card.name : ""
+            });
+          }
         }
       }
 
@@ -1485,6 +1675,10 @@ function App() {
 
     if (newArrows.length) {
       setArrows((prev) => [...prev, ...newArrows.slice(-6)]);
+    }
+
+    if (newCardEffects.length) {
+      setCardEffects((prev) => [...prev, ...newCardEffects.slice(-10)]);
     }
   }, [roomState?.animEvents]);
 
@@ -1619,6 +1813,10 @@ function App() {
 
   function removeArrow(key) {
     setArrows((prev) => prev.filter((arrow) => arrow.key !== key));
+  }
+
+  function removeCardEffect(key) {
+    setCardEffects((prev) => prev.filter((effect) => effect.key !== key));
   }
 
   async function playTrait(cardInstanceId) {
@@ -1895,6 +2093,7 @@ function App() {
         <PlaySpotlight play={playSpotlight} />
         <TiebreakRoll roll={tiebreak} />
         <FlyingCards flights={flights} onDone={removeFlight} />
+        <CardEffects effects={cardEffects} onDone={removeCardEffect} />
         <ZoneBadges pips={pips} onDone={removePip} />
         <TargetArrows arrows={arrows} onDone={removeArrow} />
         <AgeSweep sweep={ageSweep} />
