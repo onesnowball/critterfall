@@ -358,6 +358,7 @@ function modifyGenePoolSize(room, player, amount, sourceName = "Effect") {
 
   if (amount < 0 && player.board.some((card) => card.passiveEffect?.type === "genePoolProtection")) {
     addLog(room, `${player.name}'s Gene Pool resisted ${sourceName}.`);
+    animShield(room, player, "Resisted");
     return 0;
   }
 
@@ -370,6 +371,10 @@ function modifyGenePoolSize(room, player, amount, sourceName = "Effect") {
     addLog(room, `${sourceName} increased ${player.name}'s Gene Pool to ${next}.`);
   } else if (delta < 0) {
     addLog(room, `${sourceName} decreased ${player.name}'s Gene Pool to ${next}.`);
+  }
+
+  if (delta !== 0) {
+    animGene(room, player, delta);
   }
 
   return delta;
@@ -403,6 +408,80 @@ function pushAnim(room, event) {
   }
 
   return seq;
+}
+
+function animMove(room, fromPlayer, toPlayer, card, opts = {}) {
+  if (!fromPlayer || !toPlayer || !card) {
+    return;
+  }
+
+  pushAnim(room, {
+    type: "move",
+    card: animCardSnapshot(card),
+    from: { zone: opts.fromZone || "board", playerId: fromPlayer.id },
+    to: { zone: opts.toZone || "board", playerId: toPlayer.id },
+    actorId: opts.actorId || toPlayer.id,
+    tone: opts.tone || "attack"
+  });
+}
+
+function animAttach(room, actor, hostPlayer, card) {
+  if (!actor || !hostPlayer || !card) {
+    return;
+  }
+
+  pushAnim(room, {
+    type: "attach",
+    card: animCardSnapshot(card),
+    from: { zone: "board", playerId: actor.id },
+    to: { zone: "board", playerId: hostPlayer.id },
+    actorId: actor.id,
+    tone: actor.id === hostPlayer.id ? "help" : "attack"
+  });
+}
+
+function animGene(room, player, delta, actorId = null) {
+  if (!player || !delta) {
+    return;
+  }
+
+  pushAnim(room, {
+    type: "gene",
+    playerId: player.id,
+    delta,
+    actorId: actorId && actorId !== player.id ? actorId : null,
+    tone: delta > 0 ? "help" : "attack"
+  });
+}
+
+function animShield(room, player, label = "Shielded") {
+  if (!player) {
+    return;
+  }
+
+  pushAnim(room, { type: "shield", playerId: player.id, label });
+}
+
+function animDestroy(room, player, card = null) {
+  if (!player) {
+    return;
+  }
+
+  pushAnim(room, { type: "destroy", playerId: player.id, card: animCardSnapshot(card) });
+}
+
+function animSwap(room, playerA, playerB) {
+  if (!playerA || !playerB || playerA.id === playerB.id) {
+    return;
+  }
+
+  pushAnim(room, {
+    type: "swap",
+    from: { zone: "hand", playerId: playerA.id },
+    to: { zone: "hand", playerId: playerB.id },
+    actorId: playerA.id,
+    tone: "attack"
+  });
 }
 
 function addToDiscard(room, card, discardedById = null, fromZone = "board") {
@@ -750,6 +829,7 @@ function consumeDestroyBlocker(room, player, blocker, targetCard) {
   }
 
   const [removed] = player.board.splice(index, 1);
+  animShield(room, player, "Blocked");
   addToDiscard(room, removed, removed.ownerId || player.id);
   addLog(room, `${removed.name} blocked ${targetCard.name} from being destroyed, then was discarded.`);
   return true;
@@ -826,6 +906,7 @@ function removeBoardEntry(room, entry, reason = "destroyed", options = {}) {
 
   if (attachmentProtects(entry.card, "remove") && !options.bypassAttachment) {
     addLog(room, `${entry.card.name} is shielded and cannot be removed.`);
+    animShield(room, entry.player, "Shielded");
     return null;
   }
 
@@ -847,6 +928,7 @@ function removeBoardEntry(room, entry, reason = "destroyed", options = {}) {
     return null;
   }
 
+  animDestroy(room, entry.player, card);
   addToDiscard(room, card, card.ownerId || entry.player.id);
   entry.player.flags.destroyedThisGame = true;
 
@@ -1491,6 +1573,7 @@ function applyPublicTraitChoice(room, choice, option, actor) {
     const [stolen] = entry.player.board.splice(entry.index, 1);
     stolen.ownerId = actor.id;
     actor.board.push(stolen);
+    animMove(room, entry.player, actor, stolen, { actorId: actor.id, tone: "attack" });
     addLog(room, `${actor.name} stole ${stolen.name} from ${entry.player.name}'s Trait Row.`);
   } else if (choice.mode === "poison") {
     poisonTrait(room, entry, Number(choice.params?.turns || 1));
@@ -1561,10 +1644,12 @@ function applyPeekPlayChoice(room, choice, option, actor) {
   addLog(room, `${actor.name} peeked at ${target.name}'s hand and took a card.`);
 
   if (choice.params?.playImmediately === false || isParasite(stolen)) {
+    animMove(room, target, actor, stolen, { fromZone: "hand", toZone: "hand", actorId: actor.id, tone: "attack" });
     actor.hand.push(stolen);
     return false;
   }
 
+  animMove(room, target, actor, stolen, { fromZone: "hand", toZone: "board", actorId: actor.id, tone: "attack" });
   actor.board.push(stolen);
   addLog(room, `${actor.name} immediately played ${stolen.name}.`);
   // If the played card queues its own choice, it sets room.pendingChoice; we
@@ -1592,6 +1677,7 @@ function performAttach(room, actor, sourceCard, params, hostPlayer, hostCard, co
     playedById: actor.id
   };
   hostCard.attachments = cardAttachments(hostCard).concat(attachmentCard);
+  animAttach(room, actor, hostPlayer, attachmentCard);
   addLog(room, `${actor.name} attached ${attachmentCard.name} to ${hostPlayer.name}'s ${hostCard.name}.`);
 
   if (params.playHostAction && hostCard.immediateEffect) {
@@ -1712,6 +1798,7 @@ function applyTargetPlayerChoice(room, choice, option, actor) {
     }
 
     [actor.hand, chosen.hand] = [chosen.hand, actor.hand];
+    animSwap(room, actor, chosen);
     addLog(room, `${actor.name} swapped hands with ${chosen.name}.`);
     return false;
   }
@@ -1732,6 +1819,7 @@ function applyTargetPlayerChoice(room, choice, option, actor) {
   card.parasiteOwnerId = actor.id;
   card.parasiteValue = Number(choice.params?.value ?? card.points ?? -1);
   target.board.push(card);
+  animMove(room, actor, target, card, { actorId: actor.id, tone: "attack" });
   addLog(room, `${actor.name} placed ${card.name} into ${target.name}'s Trait Row.`);
   return false;
 }
@@ -1934,6 +2022,7 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
           const [stolen] = target.board.splice(entry.index, 1);
           stolen.ownerId = actor.id;
           actor.board.push(stolen);
+          animMove(room, target, actor, stolen, { actorId: actor.id, tone: "attack" });
           addLog(room, `${actor.name} stole ${stolen.name} from ${target.name}'s Trait Row.`);
           return;
         }
@@ -1943,6 +2032,7 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
         if (stolen) {
           stolen.ownerId = actor.id;
           actor.hand.push(stolen);
+          animMove(room, target, actor, stolen, { fromZone: "hand", toZone: "hand", actorId: actor.id, tone: "attack" });
           addLog(room, `${actor.name} stole ${stolen.name} from ${target.name}.`, actor.id);
           addLog(room, `${actor.name} stole ${stolen.name} from you.`, target.id);
           addLog(room, `${actor.name} stole a random card from ${target.name}.`);
@@ -1981,6 +2071,7 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
         const [stolen] = entry.player.board.splice(entry.index, 1);
         stolen.ownerId = actor.id;
         actor.board.push(stolen);
+        animMove(room, entry.player, actor, stolen, { actorId: actor.id, tone: "attack" });
         addLog(room, `${actor.name} stole ${stolen.name} from ${entry.player.name}'s Trait Row.`);
       } else if (params.color) {
         addLog(room, `${sourceCard.name} found no ${normalizeColor(params.color)} Trait to steal.`);
@@ -2116,6 +2207,7 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
 
       if (target) {
         [actor.hand, target.hand] = [target.hand, actor.hand];
+        animSwap(room, actor, target);
         addLog(room, `${actor.name} swapped hands with ${target.name}.`);
       }
       break;
@@ -2246,8 +2338,10 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
       addLog(room, `${actor.name} peeked at ${target.name}'s hand and stole a card.`);
 
       if (params.playImmediately === false || isParasite(stolen)) {
+        animMove(room, target, actor, stolen, { fromZone: "hand", toZone: "hand", actorId: actor.id, tone: "attack" });
         actor.hand.push(stolen);
       } else {
+        animMove(room, target, actor, stolen, { fromZone: "hand", toZone: "board", actorId: actor.id, tone: "attack" });
         actor.board.push(stolen);
         addLog(room, `${actor.name} immediately played ${stolen.name}.`);
         const pending = applyEffect(room, actor, stolen.immediateEffect, stolen, { finishAfterChoice: context.finishAfterChoice, effectDepth: context.effectDepth });
@@ -2271,6 +2365,7 @@ function applyEffect(room, actor, effect, sourceCard = { name: "Effect" }, conte
         moved.parasiteOwnerId = actor.id;
         moved.parasiteValue = Number(params.value ?? moved.points ?? -2);
         target.board.push(moved);
+        animMove(room, actor, target, moved, { actorId: actor.id, tone: "attack" });
         addLog(room, `${actor.name} moved ${moved.name} into ${target.name}'s Trait Row.`);
       }
 
@@ -3893,7 +3988,11 @@ function sanitizeAnimEvents(room, playerId) {
   const events = room.animEvents || [];
 
   return events.slice(-30).map((event) => {
-    if (event.type === "draw" && event.to?.playerId && event.to.playerId !== playerId) {
+    const hideDraw = event.type === "draw" && event.to?.playerId && event.to.playerId !== playerId;
+    const hideMove =
+      event.type === "move" && event.to?.zone === "hand" && event.to?.playerId && event.to.playerId !== playerId;
+
+    if (hideDraw || hideMove) {
       return { ...event, card: { hidden: true } };
     }
 

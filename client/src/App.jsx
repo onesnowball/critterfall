@@ -637,6 +637,20 @@ function resolveZonePoint(loc, meId) {
   return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
 }
 
+function resolveBoardPoint(playerId) {
+  if (!playerId) {
+    return null;
+  }
+
+  const el = document.querySelector(`[data-anim-zone="board"][data-anim-player="${escapeAttr(playerId)}"]`);
+  if (!el) {
+    return null;
+  }
+
+  const rect = el.getBoundingClientRect();
+  return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+}
+
 function Flight({ flight, onDone }) {
   const ref = useRef(null);
 
@@ -677,16 +691,33 @@ function Flight({ flight, onDone }) {
   }, [flight.key]);
 
   const card = flight.card || {};
+  const hidden = Boolean(card.hidden);
+  const className = [
+    "flight-card",
+    `flight-card--${flight.type}`,
+    flight.tone ? `flight-card--${flight.tone}` : "",
+    hidden ? "flight-card--back" : ""
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <div
       ref={ref}
-      className={`flight-card flight-card--${flight.type}`}
-      style={{ left: `${flight.from.x}px`, top: `${flight.from.y}px`, "--flight-color": card.color || "#9aa0b5" }}
+      className={className}
+      style={{
+        left: `${flight.from.x}px`,
+        top: `${flight.from.y}px`,
+        "--flight-color": hidden ? "#6f7690" : card.color || "#9aa0b5"
+      }}
       aria-hidden="true"
     >
-      <span className="flight-card__emoji">{card.emoji || "❔"}</span>
-      {typeof card.points === "number" ? <span className="flight-card__points">{card.points}</span> : null}
+      {hidden ? (
+        <span className="flight-card__back">✦</span>
+      ) : (
+        <span className="flight-card__emoji">{card.emoji || "❔"}</span>
+      )}
+      {!hidden && typeof card.points === "number" ? <span className="flight-card__points">{card.points}</span> : null}
     </div>
   );
 }
@@ -701,6 +732,98 @@ function FlyingCards({ flights, onDone }) {
       {flights.map((flight) => (
         <Flight key={flight.key} flight={flight} onDone={onDone} />
       ))}
+    </div>
+  );
+}
+
+function ZoneBadge({ pip, onDone }) {
+  useEffect(() => {
+    const timer = window.setTimeout(() => onDone(pip.key), pip.duration || 1100);
+    return () => window.clearTimeout(timer);
+  }, [pip.key]);
+
+  return (
+    <div
+      className={`zone-badge zone-badge--${pip.kind} zone-badge--${pip.tone}`}
+      style={{ left: `${pip.x}px`, top: `${pip.y}px` }}
+      aria-hidden="true"
+    >
+      <span className="zone-badge__icon">{pip.icon}</span>
+      {pip.text ? <span className="zone-badge__text">{pip.text}</span> : null}
+    </div>
+  );
+}
+
+function ZoneBadges({ pips, onDone }) {
+  if (!pips.length) {
+    return null;
+  }
+
+  return (
+    <div className="zone-badge-layer" aria-hidden="true">
+      {pips.map((pip) => (
+        <ZoneBadge key={pip.key} pip={pip} onDone={onDone} />
+      ))}
+    </div>
+  );
+}
+
+function Arrow({ arrow, onDone }) {
+  useEffect(() => {
+    const timer = window.setTimeout(() => onDone(arrow.key), 780);
+    return () => window.clearTimeout(timer);
+  }, [arrow.key]);
+
+  const { from, to } = arrow;
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const len = Math.max(1, Math.hypot(dx, dy));
+  const shrink = Math.min(48, len * 0.34);
+  const ex = to.x - (dx / len) * shrink;
+  const ey = to.y - (dy / len) * shrink;
+  const mx = (from.x + ex) / 2;
+  const my = (from.y + ey) / 2 - Math.min(72, len * 0.18);
+
+  return (
+    <path
+      className={`target-arrow target-arrow--${arrow.tone}`}
+      d={`M ${from.x} ${from.y} Q ${mx} ${my} ${ex} ${ey}`}
+      pathLength="1"
+      markerEnd={`url(#arrowhead-${arrow.tone})`}
+    />
+  );
+}
+
+function TargetArrows({ arrows, onDone }) {
+  if (!arrows.length) {
+    return null;
+  }
+
+  return (
+    <svg className="target-arrow-layer" aria-hidden="true">
+      <defs>
+        <marker id="arrowhead-attack" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+          <path className="arrowhead arrowhead--attack" d="M 0 0 L 10 5 L 0 10 z" />
+        </marker>
+        <marker id="arrowhead-help" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+          <path className="arrowhead arrowhead--help" d="M 0 0 L 10 5 L 0 10 z" />
+        </marker>
+      </defs>
+      {arrows.map((arrow) => (
+        <Arrow key={arrow.key} arrow={arrow} onDone={onDone} />
+      ))}
+    </svg>
+  );
+}
+
+function AgeSweep({ sweep }) {
+  if (!sweep) {
+    return null;
+  }
+
+  return (
+    <div className={`age-sweep${sweep.catastrophe ? " age-sweep--catastrophe" : ""}`} key={sweep.key} aria-hidden="true">
+      <span className="age-sweep__bar" />
     </div>
   );
 }
@@ -1084,6 +1207,9 @@ function App() {
   const [playSpotlight, setPlaySpotlight] = useState(null);
   const [tiebreak, setTiebreak] = useState(null);
   const [flights, setFlights] = useState([]);
+  const [pips, setPips] = useState([]);
+  const [arrows, setArrows] = useState([]);
+  const [ageSweep, setAgeSweep] = useState(null);
   const lastPlaySeqRef = useRef(0);
   const lastPlayTimeRef = useRef(0);
   const tiebreakSeqRef = useRef(0);
@@ -1167,11 +1293,19 @@ function App() {
     const sinceLastPlay = Date.now() - lastPlayTimeRef.current;
     const holdForLastPlay = sinceLastPlay < 900 ? 2400 : 0;
 
-    const revealTimer = window.setTimeout(() => setAgeAnnouncement(roomState.currentAge), holdForLastPlay);
+    const age = roomState.currentAge;
+    const revealTimer = window.setTimeout(() => {
+      setAgeAnnouncement(age);
+      if (!prefersReducedMotion()) {
+        setAgeSweep({ key: age.id, catastrophe: Boolean(age.isCatastrophe) });
+      }
+    }, holdForLastPlay);
     const clearTimer = window.setTimeout(() => setAgeAnnouncement(null), holdForLastPlay + 3200);
+    const sweepClearTimer = window.setTimeout(() => setAgeSweep(null), holdForLastPlay + 1150);
     return () => {
       window.clearTimeout(revealTimer);
       window.clearTimeout(clearTimer);
+      window.clearTimeout(sweepClearTimer);
     };
   }, [isPlaying, roomState?.currentAge?.id]);
 
@@ -1231,35 +1365,126 @@ function App() {
     }
 
     const meId = roomState.youPlayerId;
-    const playable = fresh
-      .filter((event) => {
-        if (event.card && event.card.hidden) {
-          return false;
-        }
-        if (event.type === "discard") {
-          return true;
-        }
-        if (event.type === "draw") {
-          return event.to?.playerId === meId;
-        }
-        return false;
-      })
-      .slice(-8);
+    const newFlights = [];
+    const newPips = [];
+    const newArrows = [];
 
-    if (!playable.length) {
-      return;
+    fresh.forEach((event) => {
+      const card = event.card || null;
+      const hidden = Boolean(card && card.hidden);
+
+      if (event.type === "discard") {
+        newFlights.push({
+          event,
+          type: "discard",
+          card,
+          tone: "attack",
+          from: resolveZonePoint(event.from, meId),
+          to: resolveZonePoint(event.to, meId)
+        });
+      } else if (event.type === "draw") {
+        // Opponent draws are hidden and happen every turn — too noisy to fly.
+        if (event.to?.playerId === meId && !hidden) {
+          newFlights.push({
+            event,
+            type: "draw",
+            card,
+            tone: "help",
+            from: resolveZonePoint(event.from, meId),
+            to: resolveZonePoint(event.to, meId)
+          });
+        }
+      } else if (event.type === "move" || event.type === "attach") {
+        newFlights.push({
+          event,
+          type: event.type,
+          card,
+          tone: event.tone || "attack",
+          from: resolveZonePoint(event.from, meId),
+          to: resolveZonePoint(event.to, meId)
+        });
+      } else if (event.type === "swap") {
+        const a = resolveZonePoint(event.from, meId);
+        const b = resolveZonePoint(event.to, meId);
+        newFlights.push({ event, type: "swap", card: { hidden: true }, tone: "attack", from: a, to: b, suffix: "a" });
+        newFlights.push({ event, type: "swap", card: { hidden: true }, tone: "attack", from: b, to: a, suffix: "b" });
+      } else if (event.type === "gene") {
+        const point = resolveBoardPoint(event.playerId);
+        if (point) {
+          const positive = event.delta > 0;
+          newPips.push({
+            key: `p${event.seq}`,
+            kind: "gene",
+            tone: event.tone || (positive ? "help" : "attack"),
+            x: point.x,
+            y: point.y,
+            icon: positive ? "🧬" : "🩸",
+            text: `${positive ? "+" : ""}${event.delta}`
+          });
+        }
+      } else if (event.type === "shield") {
+        const point = resolveBoardPoint(event.playerId);
+        if (point) {
+          newPips.push({
+            key: `p${event.seq}`,
+            kind: "shield",
+            tone: "help",
+            x: point.x,
+            y: point.y,
+            icon: "🛡️",
+            text: event.label || "Shielded"
+          });
+        }
+      } else if (event.type === "destroy") {
+        const point = resolveBoardPoint(event.playerId);
+        if (point) {
+          newPips.push({
+            key: `p${event.seq}`,
+            kind: "destroy",
+            tone: "attack",
+            x: point.x,
+            y: point.y,
+            icon: "💥",
+            text: card && !card.hidden ? card.name : ""
+          });
+        }
+      }
+
+      // Targeting arrow: actor → the OTHER involved player (victim for steals,
+      // affected player for drains). Self-directed effects draw no arrow.
+      if (event.actorId) {
+        const involved = [event.from?.playerId, event.to?.playerId, event.playerId].filter(Boolean);
+        const targetId = involved.find((id) => id !== event.actorId) || null;
+        if (targetId) {
+          const src = resolveBoardPoint(event.actorId);
+          const dst = resolveBoardPoint(targetId);
+          if (src && dst) {
+            newArrows.push({ key: `ar${event.seq}`, tone: event.tone || "attack", from: src, to: dst });
+          }
+        }
+      }
+    });
+
+    if (newFlights.length) {
+      const spawned = newFlights.slice(-10).map((flight, index) => ({
+        key: `f${flight.event.seq}${flight.suffix || ""}`,
+        type: flight.type,
+        card: flight.card,
+        tone: flight.tone,
+        from: flight.from,
+        to: flight.to,
+        delay: index * 80
+      }));
+      setFlights((prev) => [...prev, ...spawned]);
     }
 
-    const spawned = playable.map((event, index) => ({
-      key: `f${event.seq}`,
-      type: event.type,
-      card: event.card,
-      from: resolveZonePoint(event.from, meId),
-      to: resolveZonePoint(event.to, meId),
-      delay: index * 85
-    }));
+    if (newPips.length) {
+      setPips((prev) => [...prev, ...newPips.slice(-8)]);
+    }
 
-    setFlights((prev) => [...prev, ...spawned]);
+    if (newArrows.length) {
+      setArrows((prev) => [...prev, ...newArrows.slice(-6)]);
+    }
   }, [roomState?.animEvents]);
 
   useEffect(() => {
@@ -1385,6 +1610,14 @@ function App() {
 
   function removeFlight(key) {
     setFlights((prev) => prev.filter((flight) => flight.key !== key));
+  }
+
+  function removePip(key) {
+    setPips((prev) => prev.filter((pip) => pip.key !== key));
+  }
+
+  function removeArrow(key) {
+    setArrows((prev) => prev.filter((arrow) => arrow.key !== key));
   }
 
   async function playTrait(cardInstanceId) {
@@ -1661,6 +1894,9 @@ function App() {
         <PlaySpotlight play={playSpotlight} />
         <TiebreakRoll roll={tiebreak} />
         <FlyingCards flights={flights} onDone={removeFlight} />
+        <ZoneBadges pips={pips} onDone={removePip} />
+        <TargetArrows arrows={arrows} onDone={removeArrow} />
+        <AgeSweep sweep={ageSweep} />
         <section key={roomState.currentAge?.id || "age"} className="panel panel--hero age-panel">
           <div className="section-heading">
             <div>
